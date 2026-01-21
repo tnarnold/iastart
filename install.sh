@@ -108,7 +108,7 @@ echo "   > MySQL..."
 envsubst < 11-mysql.yaml > /tmp/11-mysql_deploy.yaml
 deploy_stack "mysql" "/tmp/11-mysql_deploy.yaml"
 
-echo "   [INFO] Aguardando 30s para inicializacao do mysql..."
+echo "   [INFO] Aguardando 60s para inicializacao do mysql..."
 sleep 60
 
 echo "   > WordPress..."
