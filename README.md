@@ -73,3 +73,4 @@ Se o SSL não funcionar (cadeado vermelho ou erro de certificado):
 - [ ] **SSL Cloudflare**: Adicionar suporte a DNS Challenge (API Cloudflare) no Traefik.
 - [ ] **Reorganização**: Melhorar estrutura de arquivos e diretórios.
 - [ ] **Menu Interativo**: Criar instalador com seleção de serviços (O que instalar).
+- [ ] **Firewall de Gerência**: Restringir acesso às portas de gerência dos aplicativos administrativos.
