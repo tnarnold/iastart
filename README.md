@@ -66,7 +66,7 @@ Após a instalação (aguarde alguns minutos para tudo subir), você poderá ace
 Se o SSL não funcionar (cadeado vermelho ou erro de certificado):
 1. Verifique se o seu domínio aponta para o IP correto do servidor (Tipo A).
 2. Verifique se as portas 80 e 443 estão liberadas no Firewall do provedor de nuvem (AWS/DigitalOcean/etc).
-3. Verifique os logs do Traefik: `docker service logs -f iastart_traefik`.
+3. Verifique os logs do Traefik: `docker service logs -f traefik_traefik`.
 
 ## 🗺️ Roadmap
 
