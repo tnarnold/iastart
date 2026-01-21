@@ -10,6 +10,9 @@ Repositório para implantação automatizada de agentes de IA e ferramentas de a
 >
 > Se você estiver atrás de um CGNAT ou Firewall restritivo, o SSL do Let's Encrypt falhará e os serviços não ficarão acessíveis.
 
+> [!NOTE]
+> **Compatibilidade**: O script de instalação foi testado e validado no **Debian 13**.
+
 ## Tecnologias
 
 - **Docker Swarm**: Orquestração

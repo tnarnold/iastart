@@ -69,16 +69,12 @@ echo "   > PostgreSQL..."
 envsubst < 02-postgres.yaml > /tmp/02-postgres_deploy.yaml
 deploy_stack "postgres" "/tmp/02-postgres_deploy.yaml"
 
-echo "   > MySQL..."
-envsubst < 11-mysql.yaml > /tmp/11-mysql_deploy.yaml
-deploy_stack "mysql" "/tmp/11-mysql_deploy.yaml"
+echo "   [INFO] Aguardando 30s para inicializacao do postgres..."
+sleep 30
 
 echo "   > MinIO..."
 envsubst < 03-minio.yaml > /tmp/03-minio_deploy.yaml
 deploy_stack "minio" "/tmp/03-minio_deploy.yaml"
-
-echo "   [INFO] Aguardando 30s para inicializacao dos bancos..."
-sleep 30
 
 echo "   > n8n..."
 # Concatenating n8n files for single stack deployment in Portainer
@@ -107,6 +103,13 @@ deploy_stack "chatwoot" "/tmp/chatwoot_full_deploy.yaml"
 echo "   > Evolution API..."
 envsubst < 09-evolution.yaml > /tmp/evolution_deploy.yaml
 deploy_stack "evolution" "/tmp/evolution_deploy.yaml"
+
+echo "   > MySQL..."
+envsubst < 11-mysql.yaml > /tmp/11-mysql_deploy.yaml
+deploy_stack "mysql" "/tmp/11-mysql_deploy.yaml"
+
+echo "   [INFO] Aguardando 30s para inicializacao do mysql..."
+sleep 60
 
 echo "   > WordPress..."
 envsubst < 12-wordpress.yaml > /tmp/wordpress_deploy.yaml
