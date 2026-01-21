@@ -1,0 +1,517 @@
+{
+  "name": "lab-01 copy",
+  "nodes": [
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4.1-mini"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        448,
+        336
+      ],
+      "id": "23955a32-8910-4bb7-bef6-040ba83ebcca",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "Z2Lv6X1ZVRK7mYjN",
+          "name": "openai-isp-ai-starter"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "58812818-3ca2-4bc3-bbe8-4755ac882762",
+              "name": "cw.url",
+              "value": "https://chat.alunoXXX.starter.ispai.com.br",
+              "type": "string"
+            },
+            {
+              "id": "1ef82b5b-da75-4c05-8d57-9f681bc9ac76",
+              "name": "cw.account",
+              "value": "={{ \n (() => {\n   try {\n     return $item(\"0\").$node[\"webhook\"].json[\"body\"][\"account\"][\"id\"];\n   } catch (e) {\n     return null;\n   }\n })()\n}}",
+              "type": "string"
+            },
+            {
+              "id": "caccc7e7-2fc9-461c-9ac3-e89ebcb972e7",
+              "name": "cw.token",
+              "value": "9ZiQPuwqrewrewrweerer",
+              "type": "string"
+            },
+            {
+              "id": "bceb9641-bb84-47ca-b981-2908a1b05ad6",
+              "name": "cw.conversation_id",
+              "value": "={{ \n (() => {\n   try {\n     return $item(\"0\").$node[\"webhook\"].json[\"body\"][\"conversation\"][\"id\"];\n   } catch (e) {\n     return null;\n   }\n })()\n}}",
+              "type": "string"
+            },
+            {
+              "id": "0eb71242-5277-4b69-afaf-c25b221c1f0a",
+              "name": "cw.message_source",
+              "value": "={{ $item(\"0\").$node[\"webhook\"].json[\"body\"][\"message_type\"] }}",
+              "type": "string"
+            },
+            {
+              "id": "49b44cf6-6951-4e51-8442-f35a98b9a10b",
+              "name": "cw.message",
+              "value": "={{ \n (() => {\n   try {\n     return $item(\"0\").$node[\"webhook\"].json[\"body\"][\"conversation\"][\"messages\"][\"0\"][\"content\"];\n   } catch (e) {\n     return null;\n   }\n })()\n}}",
+              "type": "string"
+            },
+            {
+              "id": "aee50207-0329-473a-8e21-f4026a60da77",
+              "name": "cw.name",
+              "value": "={{ \n (() => {\n   try {\n     return $item(\"0\").$node[\"webhook\"].json[\"body\"][\"conversation\"][\"messages\"][\"0\"][\"sender\"][\"name\"];\n   } catch (e) {\n     return null;\n   }\n })()\n}}",
+              "type": "string"
+            },
+            {
+              "id": "74d2601a-bf15-4e20-ba98-8561ce232590",
+              "name": "cw.whatsapp",
+              "value": "={{ \n (() => {\n   try {\n     return $item(\"0\").$node[\"webhook\"].json[\"body\"][\"conversation\"][\"messages\"][\"0\"][\"sender\"][\"phone_number\"];\n   } catch (e) {\n     return null;\n   }\n })()\n}}",
+              "type": "string"
+            },
+            {
+              "id": "1adedff1-c190-49e1-8909-fec25a890e79",
+              "name": "openai.token",
+              "value": "SUA CHAVE OPENAI",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -112,
+        128
+      ],
+      "id": "73bbb343-8112-4846-b747-93ffa87dd58f",
+      "name": "parametros"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "f785f3fc-61bd-4f45-a965-aa91e5679496",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -272,
+        128
+      ],
+      "id": "2c8fcf70-c1fd-4461-9164-be5e58c8d59c",
+      "name": "webhook",
+      "webhookId": "f785f3fc-61bd-4f45-a965-aa91e5679496"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $item(\"0\").$node[\"parametros\"].json[\"cw\"][\"message\"] }}",
+        "options": {
+          "systemMessage": "Você é um assistente virtual do provedor OK Internet"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        448,
+        112
+      ],
+      "id": "75ce6667-8437-4770-adc6-3346695e1094",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "17d40acb-5559-4889-9176-628d061cfa20",
+              "leftValue": "={{ $item(\"0\").$node[\"parametros\"].json[\"cw\"][\"message_source\"] }}",
+              "rightValue": "incoming",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        48,
+        128
+      ],
+      "id": "ebf2062a-c893-4119-853c-e95280bed05a",
+      "name": "se_incomming"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        256,
+        224
+      ],
+      "id": "c0789117-a2d1-4dbf-98a3-fef58ef8879a",
+      "name": "No Operation, do nothing"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/audio/speech",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $item(\"0\").$node[\"parametros\"].json[\"openai\"][\"token\"] }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "model",
+              "value": "gpt-4o-mini-tts-2025-12-15"
+            },
+            {
+              "name": "input",
+              "value": "={{ $item(\"0\").$node[\"AI Agent\"].json[\"output\"] }}"
+            },
+            {
+              "name": "voice",
+              "value": "fable"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "ab2f04b6-7b8b-490e-b1cb-1aefeb1a1e92",
+      "name": "Create Audio",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        752,
+        112
+      ],
+      "retryOnFail": true,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $item(\"0\").$node[\"parametros\"].json[\"cw\"][\"url\"] }}/api/v1/accounts/{{ $item(\"0\").$node[\"parametros\"].json[\"cw\"][\"account\"] }}/conversations/{{ $item(\"0\").$node[\"parametros\"].json[\"cw\"][\"conversation_id\"] }}/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "api_access_token",
+              "value": "={{ $item(\"0\").$node[\"parametros\"].json[\"cw\"][\"token\"] }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "message_type",
+              "value": "outgoing"
+            },
+            {
+              "parameterType": "formBinaryData",
+              "name": "attachments[]",
+              "inputDataFieldName": "data"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        976,
+        96
+      ],
+      "id": "84276267-0983-4a37-a01a-ca05af2f09b8",
+      "name": "envia_audio_chatwoot"
+    }
+  ],
+  "pinData": {
+    "webhook": [
+      {
+        "json": {
+          "headers": {
+            "host": "wb.okia.app",
+            "user-agent": "rest-client/2.1.0 (linux-musl x86_64) ruby/3.4.4p34",
+            "content-length": "4517",
+            "accept": "application/json",
+            "accept-encoding": "gzip, br",
+            "cdn-loop": "cloudflare; loops=1",
+            "cf-connecting-ip": "45.171.63.1",
+            "cf-ipcountry": "BR",
+            "cf-ray": "9b2c15d999760bb5-GIG",
+            "cf-visitor": "{\"scheme\":\"https\"}",
+            "cf-warp-tag-id": "2072b442-ed0b-46a2-9e74-a14892232bf2",
+            "connection": "keep-alive",
+            "content-type": "application/json",
+            "x-forwarded-for": "45.171.63.1",
+            "x-forwarded-proto": "https"
+          },
+          "params": {},
+          "query": {},
+          "body": {
+            "account": {
+              "id": 2,
+              "name": "Suporte N1"
+            },
+            "additional_attributes": {},
+            "content_attributes": {},
+            "content_type": "text",
+            "content": "Não estou conseguindo navegar",
+            "conversation": {
+              "additional_attributes": {},
+              "can_reply": true,
+              "channel": "Channel::Api",
+              "contact_inbox": {
+                "id": 8,
+                "contact_id": 4,
+                "inbox_id": 1,
+                "source_id": "9241586f-98c9-46ef-b5e9-07626bc36bd7",
+                "created_at": "2025-12-24T00:39:16.578Z",
+                "updated_at": "2025-12-24T00:39:16.578Z",
+                "hmac_verified": false,
+                "pubsub_token": "ugoHzhZpipbKHnssdc3uL1GD"
+              },
+              "id": 4,
+              "inbox_id": 1,
+              "messages": [
+                {
+                  "id": 69,
+                  "content": "Não estou conseguindo navegar",
+                  "account_id": 2,
+                  "inbox_id": 1,
+                  "conversation_id": 4,
+                  "message_type": 0,
+                  "created_at": 1766537225,
+                  "updated_at": "2025-12-24T00:47:05.063Z",
+                  "private": false,
+                  "status": "sent",
+                  "source_id": "WAID:2A58153BA65FE768039E",
+                  "content_type": "text",
+                  "content_attributes": {},
+                  "sender_type": "Contact",
+                  "sender_id": 4,
+                  "external_source_ids": {},
+                  "additional_attributes": {},
+                  "processed_message_content": "Não estou conseguindo navegar",
+                  "sentiment": {},
+                  "conversation": {
+                    "assignee_id": null,
+                    "unread_count": 1,
+                    "last_activity_at": 1766537225,
+                    "contact_inbox": {
+                      "source_id": "9241586f-98c9-46ef-b5e9-07626bc36bd7"
+                    }
+                  },
+                  "sender": {
+                    "additional_attributes": {
+                      "avatar_url_hash": "1442144bb3f38f31df6799d03499f314796e4b4e597a9d6b0c93a21f8747cef5",
+                      "last_avatar_sync_at": "2025-12-24T00:39:16Z"
+                    },
+                    "custom_attributes": {},
+                    "email": null,
+                    "id": 4,
+                    "identifier": "553198257197@s.whatsapp.net",
+                    "name": "Rafael Ok iA",
+                    "phone_number": "+553198257197",
+                    "thumbnail": "https://chat.aluno001.starter.ispai.com.br/rails/active_storage/representations/redirect/eyJfcmFpbHMiOnsibWVzc2FnZSI6IkJBaHBFUT09IiwiZXhwIjpudWxsLCJwdXIiOiJibG9iX2lkIn19--568d476dcda59f3b73e75c2f031e1e595f0c0736/eyJfcmFpbHMiOnsibWVzc2FnZSI6IkJBaDdCem9MWm05eWJXRjBTU0lJYW5CbkJqb0dSVlE2RTNKbGMybDZaVjkwYjE5bWFXeHNXd2RwQWZvdyIsImV4cCI6bnVsbCwicHVyIjoidmFyaWF0aW9uIn19--31a1f63818a5159f71dca8446fe68168fe417ce5/file.enc",
+                    "blocked": false,
+                    "type": "contact"
+                  }
+                }
+              ],
+              "labels": [],
+              "meta": {
+                "sender": {
+                  "additional_attributes": {
+                    "avatar_url_hash": "1442144bb3f38f31df6799d03499f314796e4b4e597a9d6b0c93a21f8747cef5",
+                    "last_avatar_sync_at": "2025-12-24T00:39:16Z"
+                  },
+                  "custom_attributes": {},
+                  "email": null,
+                  "id": 4,
+                  "identifier": "553198257197@s.whatsapp.net",
+                  "name": "Rafael Ok iA",
+                  "phone_number": "+553198257197",
+                  "thumbnail": "https://chat.aluno001.starter.ispai.com.br/rails/active_storage/representations/redirect/eyJfcmFpbHMiOnsibWVzc2FnZSI6IkJBaHBFUT09IiwiZXhwIjpudWxsLCJwdXIiOiJibG9iX2lkIn19--568d476dcda59f3b73e75c2f031e1e595f0c0736/eyJfcmFpbHMiOnsibWVzc2FnZSI6IkJBaDdCem9MWm05eWJXRjBTU0lJYW5CbkJqb0dSVlE2RTNKbGMybDZaVjkwYjE5bWFXeHNXd2RwQWZvdyIsImV4cCI6bnVsbCwicHVyIjoidmFyaWF0aW9uIn19--31a1f63818a5159f71dca8446fe68168fe417ce5/file.enc",
+                  "blocked": false,
+                  "type": "contact"
+                },
+                "assignee": null,
+                "assignee_type": null,
+                "team": null,
+                "hmac_verified": false
+              },
+              "status": "pending",
+              "custom_attributes": {},
+              "snoozed_until": null,
+              "unread_count": 1,
+              "first_reply_created_at": "2025-12-24T00:39:20.297Z",
+              "priority": null,
+              "waiting_since": 0,
+              "agent_last_seen_at": 1766537183,
+              "contact_last_seen_at": 0,
+              "last_activity_at": 1766537225,
+              "timestamp": 1766537225,
+              "created_at": 1766536756,
+              "updated_at": 1766537225.0643818
+            },
+            "created_at": "2025-12-24T00:47:05.063Z",
+            "id": 69,
+            "inbox": {
+              "id": 1,
+              "name": "WS Suporte N1"
+            },
+            "message_type": "incoming",
+            "private": false,
+            "sender": {
+              "account": {
+                "id": 2,
+                "name": "Suporte N1"
+              },
+              "additional_attributes": {
+                "avatar_url_hash": "1442144bb3f38f31df6799d03499f314796e4b4e597a9d6b0c93a21f8747cef5",
+                "last_avatar_sync_at": "2025-12-24T00:39:16Z"
+              },
+              "avatar": "https://chat.aluno001.starter.ispai.com.br/rails/active_storage/representations/redirect/eyJfcmFpbHMiOnsibWVzc2FnZSI6IkJBaHBFUT09IiwiZXhwIjpudWxsLCJwdXIiOiJibG9iX2lkIn19--568d476dcda59f3b73e75c2f031e1e595f0c0736/eyJfcmFpbHMiOnsibWVzc2FnZSI6IkJBaDdCem9MWm05eWJXRjBTU0lJYW5CbkJqb0dSVlE2RTNKbGMybDZaVjkwYjE5bWFXeHNXd2RwQWZvdyIsImV4cCI6bnVsbCwicHVyIjoidmFyaWF0aW9uIn19--31a1f63818a5159f71dca8446fe68168fe417ce5/file.enc",
+              "custom_attributes": {},
+              "email": null,
+              "id": 4,
+              "identifier": "553198257197@s.whatsapp.net",
+              "name": "Rafael Ok iA",
+              "phone_number": "+553198257197",
+              "thumbnail": "https://chat.aluno001.starter.ispai.com.br/rails/active_storage/representations/redirect/eyJfcmFpbHMiOnsibWVzc2FnZSI6IkJBaHBFUT09IiwiZXhwIjpudWxsLCJwdXIiOiJibG9iX2lkIn19--568d476dcda59f3b73e75c2f031e1e595f0c0736/eyJfcmFpbHMiOnsibWVzc2FnZSI6IkJBaDdCem9MWm05eWJXRjBTU0lJYW5CbkJqb0dSVlE2RTNKbGMybDZaVjkwYjE5bWFXeHNXd2RwQWZvdyIsImV4cCI6bnVsbCwicHVyIjoidmFyaWF0aW9uIn19--31a1f63818a5159f71dca8446fe68168fe417ce5/file.enc",
+              "blocked": false
+            },
+            "source_id": "WAID:2A58153BA65FE768039E",
+            "event": "message_created"
+          },
+          "webhookUrl": "https://wb.okia.app/webhook/sgp-isp-ai",
+          "executionMode": "production"
+        }
+      }
+    ]
+  },
+  "connections": {
+    "webhook": {
+      "main": [
+        [
+          {
+            "node": "parametros",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "parametros": {
+      "main": [
+        [
+          {
+            "node": "se_incomming",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Create Audio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "se_incomming": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "No Operation, do nothing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Audio": {
+      "main": [
+        [
+          {
+            "node": "envia_audio_chatwoot",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "f8c26e64-ee1c-48c9-aa6f-a42de703da01",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "a3abf25e99742d5bc1da1e3e6a67a02d21643a111fe2fa2a2fa236d4812287d2"
+  },
+  "id": "yxzdAMXD1JkcdT56",
+  "tags": []
+}

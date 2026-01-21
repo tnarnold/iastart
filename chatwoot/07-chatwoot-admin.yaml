@@ -1,0 +1,119 @@
+#══════════════════════════════════════════════════════════════════════════════
+#  OK Inteligência Artificial
+#  Formação ISP AI Starter - Provedores Inteligentes
+#══════════════════════════════════════════════════════════════════════════════
+#
+#  Stack:       Chatwoot Admin (Interface Web + API)
+#  Versão:      1.7.0
+#
+#  URL:
+#    - Chatwoot: https://chat.${DOMAIN}/
+#
+#  DEPENDÊNCIAS: postgres, redis, traefik
+#
+#══════════════════════════════════════════════════════════════════════════════
+services:
+  chatwoot-admin:
+    image: chatwoot/chatwoot:v4.8.0
+    hostname: "{{.Service.Name}}.{{.Task.Slot}}"
+    # Prepara o banco (create + migrate + seed) e inicia o servidor web
+    command: >
+      sh -c "bundle exec rails db:chatwoot_prepare &&
+             bundle exec rails s -p 3000 -b 0.0.0.0"
+    entrypoint: docker/entrypoints/rails.sh
+    volumes:
+      - /storage/chatwoot/data:/app/storage
+    networks:
+      - network_public
+    environment:
+      # Configurações Gerais
+      - TZ=America/Sao_Paulo
+      - INSTALLATION_NAME=chatwoot
+      - NODE_ENV=production
+      - RAILS_ENV=production
+      - INSTALLATION_ENV=docker
+      - FRONTEND_URL=https://chat.${DOMAIN}
+      - DEFAULT_LOCALE=pt_BR
+      - FORCE_SSL=true
+      - RAILS_LOG_TO_STDOUT=true
+      # Segurança (gere uma nova: openssl rand -hex 64)
+      - SECRET_KEY_BASE=${CHATWOOT_SECRET_KEY_BASE}
+      - ENABLE_ACCOUNT_SIGNUP=false
+      # Redis
+      - REDIS_URL=redis://redis:6379/3
+      # PostgreSQL
+      - POSTGRES_HOST=postgres
+      - POSTGRES_USERNAME=postgres
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DATABASE=chatwoot
+      # Email (SMTP)
+      - MAILER_SENDER_EMAIL=${SMTP_FROM_EMAIL}
+      - SMTP_ADDRESS=${SMTP_HOST}
+      - SMTP_PORT=${SMTP_PORT}
+      - SMTP_AUTHENTICATION=plain
+      #- SMTP_DOMAIN=${DOMAIN}
+      - SMTP_ENABLE_STARTTLS_AUTO=true
+      - SMTP_USERNAME=${SMTP_USER}
+      - SMTP_PASSWORD=${SMTP_PASSWORD}
+      - SMTP_OPENSSL_VERIFY_MODE=none
+      # Object Storage (S3/Minio)
+      - ACTIVE_STORAGE_SERVICE=local
+      # - ACTIVE_STORAGE_SERVICE=s3_compatible
+      # - STORAGE_BUCKET_NAME=chatwoot
+      # - STORAGE_ACCESS_KEY_ID=sua_access_key
+      # - STORAGE_SECRET_ACCESS_KEY=sua_secret_key
+      # - STORAGE_REGION=us-east-1
+      # - STORAGE_ENDPOINT=https://s3.netcorex.com.br
+      # - STORAGE_FORCE_PATH_STYLE=true
+      # Performance
+      - WEB_CONCURRENCY=0
+      - RAILS_MAX_THREADS=5
+      - SIDEKIQ_CONCURRENCY=5
+      - RACK_TIMEOUT_SERVICE_TIMEOUT=30
+      # Funcionalidades
+      - USE_INBOX_AVATAR_FOR_BOT=true
+      - ENABLE_PUSH_RELAY_SERVER=true
+      - ENABLE_RACK_ATTACK=false
+      # WhatsApp Embedded Signup (Configurar na aula de WhatsApp)
+      # - WHATSAPP_APP_ID=seu_app_id
+      # - WHATSAPP_APP_SECRET=seu_app_secret
+      # - WHATSAPP_CONFIGURATION_ID=seu_configuration_id
+      # - WHATSAPP_CLOUD_API_ENABLED=true
+      # - FB_APP_ID=seu_app_id
+      # - FB_APP_SECRET=seu_app_secret
+      # Google OAuth SSO (Opcional)
+      # - GOOGLE_OAUTH_CLIENT_ID=seu_client_id.apps.googleusercontent.com
+      # - GOOGLE_OAUTH_CLIENT_SECRET=seu_client_secret
+      # - GOOGLE_OAUTH_CALLBACK_URL=https://chat.netcorex.com.br/omniauth/google_oauth2/callback
+    deploy:
+      mode: replicated
+      replicas: 1
+      resources:
+        limits:
+          cpus: "1"
+          memory: 2048M
+        reservations:
+          cpus: "0.5"
+          memory: 1024M
+      restart_policy:
+        condition: any
+        delay: 10s
+        max_attempts: 0
+      update_config:
+        parallelism: 1
+        delay: 10s
+      labels:
+        - traefik.enable=true
+        - traefik.swarm.network=network_public
+        - traefik.http.routers.chatwoot-admin.rule=Host(`chat.${DOMAIN}`)
+        - traefik.http.routers.chatwoot-admin.entrypoints=websecure
+        - traefik.http.routers.chatwoot-admin.tls.certresolver=letsencrypt
+        - traefik.http.routers.chatwoot-admin.service=chatwoot-admin
+        - traefik.http.services.chatwoot-admin.loadbalancer.server.port=3000
+        - traefik.http.services.chatwoot-admin.loadbalancer.passhostheader=true
+        # Middleware SSL para Websockets
+        - traefik.http.middlewares.chatwoot-sslheader.headers.customrequestheaders.X-Forwarded-Proto=https
+        - traefik.http.routers.chatwoot-admin.middlewares=chatwoot-sslheader@swarm
+networks:
+  network_public:
+    external: true

@@ -1,0 +1,143 @@
+#══════════════════════════════════════════════════════════════════════════════
+#  OK Inteligência Artificial
+#  Formação ISP AI Starter - Provedores Inteligentes
+#══════════════════════════════════════════════════════════════════════════════
+#
+#  Stack:       PostgreSQL + pgvector
+#  Versão:      1.3.0
+#
+#  USUÁRIO:     postgres
+#  SENHA:       Admin@Starter2025
+#
+#  DATABASES CRIADOS AUTOMATICAMENTE:
+#    - n8n (user: n8n, senha: Admin@Starter2025)
+#
+#  NOTA: O banco 'chatwoot' é criado automaticamente pelo
+#        comando 'db:chatwoot_prepare' na stack chatwoot-admin
+#
+#══════════════════════════════════════════════════════════════════════════════
+services:
+  postgres:
+    image: pgvector/pgvector:pg17
+    hostname: "{{.Service.Name}}.{{.Task.Slot}}"
+    environment:
+      - TZ=America/Sao_Paulo
+      - PGTZ=America/Sao_Paulo
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_INITDB_ARGS=--encoding=UTF8 --locale=C.UTF-8 --data-checksums --auth-host=scram-sha-256 --auth-local=trust
+    command:
+      - postgres
+      # Timezone
+      - --timezone=America/Sao_Paulo
+      - --log_timezone=America/Sao_Paulo
+      # Conexões
+      - --max_connections=200
+      - --superuser_reserved_connections=3
+      # Memória (base 2GB limit)
+      - --shared_buffers=512MB
+      - --effective_cache_size=1GB
+      - --work_mem=8MB
+      - --maintenance_work_mem=128MB
+      - --temp_buffers=8MB
+      # WAL
+      - --wal_buffers=16MB
+      - --min_wal_size=256MB
+      - --max_wal_size=1GB
+      - --checkpoint_completion_target=0.9
+      - --checkpoint_timeout=10min
+      - --wal_compression=on
+      - --wal_level=minimal
+      - --max_wal_senders=0
+      # Query Planner (SSD)
+      - --random_page_cost=1.1
+      - --effective_io_concurrency=200
+      - --default_statistics_target=100
+      # Paralelismo
+      - --max_worker_processes=4
+      - --max_parallel_workers=2
+      - --max_parallel_workers_per_gather=1
+      - --max_parallel_maintenance_workers=2
+      # Autovacuum
+      - --autovacuum=on
+      - --autovacuum_max_workers=2
+      - --autovacuum_naptime=30s
+      - --autovacuum_vacuum_threshold=50
+      - --autovacuum_vacuum_scale_factor=0.05
+      - --autovacuum_analyze_threshold=50
+      - --autovacuum_analyze_scale_factor=0.05
+      # Timeouts (proteção)
+      - --statement_timeout=120000
+      - --idle_in_transaction_session_timeout=300000
+      - --lock_timeout=30000
+      # Logging
+      - --log_destination=stderr
+      - --logging_collector=off
+      - --log_min_duration_statement=2000
+      - --log_checkpoints=on
+      - --log_lock_waits=on
+      - --log_autovacuum_min_duration=1000
+      # Monitoring
+      - --shared_preload_libraries=pg_stat_statements
+      - --track_activities=on
+      - --track_counts=on
+      - --track_io_timing=on
+    volumes:
+      - /storage/postgres/data:/var/lib/postgresql/data
+    networks:
+      - network_public
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    deploy:
+      mode: replicated
+      replicas: 1
+      resources:
+        limits:
+          cpus: "1.5"
+          memory: 2560M
+        reservations:
+          cpus: "0.5"
+          memory: 1G
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 3
+        window: 120s
+      update_config:
+        parallelism: 1
+        delay: 10s
+  postgres-init:
+    image: pgvector/pgvector:pg17
+    environment:
+      - PGPASSWORD=${POSTGRES_PASSWORD}
+    command: >
+      sh -c "
+        until pg_isready -h postgres -U postgres; do sleep 2; done;
+        
+        echo '=== Criando database e user: n8n ===';
+        psql -h postgres -U postgres -tc \"SELECT 1 FROM pg_database WHERE datname = 'n8n'\" | grep -q 1 || psql -h postgres -U postgres -c 'CREATE DATABASE n8n';
+        psql -h postgres -U postgres -tc \"SELECT 1 FROM pg_roles WHERE rolname = 'n8n'\" | grep -q 1 || psql -h postgres -U postgres -c \"CREATE USER n8n WITH PASSWORD '${POSTGRES_PASSWORD}'\";
+        psql -h postgres -U postgres -c 'GRANT ALL PRIVILEGES ON DATABASE n8n TO n8n';
+        psql -h postgres -U postgres -d n8n -c 'GRANT ALL ON SCHEMA public TO n8n';
+        
+        echo '=== Habilitando extensões: n8n ===';
+        psql -h postgres -U postgres -d n8n -c 'CREATE EXTENSION IF NOT EXISTS vector';
+        psql -h postgres -U postgres -d n8n -c 'CREATE EXTENSION IF NOT EXISTS pg_stat_statements';
+        
+        echo '=== Init concluído com sucesso ===';
+      "
+    networks:
+      - network_public
+    deploy:
+      mode: replicated
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 10
+networks:
+  network_public:
+    external: true

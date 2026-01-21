@@ -1,0 +1,51 @@
+#══════════════════════════════════════════════════════════════════════════════
+#  OK Inteligência Artificial
+#  Formação ISP AI Starter - Provedores Inteligentes
+#══════════════════════════════════════════════════════════════════════════════
+#
+#  Stack:       Redis
+#  Versão:      1.2.0
+#
+#  PORTA:       6379
+#  AUTH:        Sem autenticação (rede interna)
+#
+#══════════════════════════════════════════════════════════════════════════════
+services:
+  redis:
+    image: redis:8-alpine
+    hostname: "{{.Service.Name}}.{{.Task.Slot}}"
+    command:
+      - redis-server
+      - --dir
+      - /data
+      - --appendonly
+      - "yes"
+    volumes:
+      - /storage/redis/data:/data
+    networks:
+      - network_public
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      mode: replicated
+      replicas: 1
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 512M
+        reservations:
+          cpus: "0.1"
+          memory: 256M
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+      update_config:
+        parallelism: 1
+        delay: 10s
+networks:
+  network_public:
+    external: true

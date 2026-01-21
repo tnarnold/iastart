@@ -1,0 +1,92 @@
+#══════════════════════════════════════════════════════════════════════════════
+#  OK Inteligência Artificial
+#  Formação ISP AI Starter - Provedores Inteligentes
+#══════════════════════════════════════════════════════════════════════════════
+#
+#  Stack:       Evolution API v2 (WhatsApp Gateway)
+#  Versão:      1.0.0
+#
+#  URL:
+#    - Evolution API: https://ws.${DOMAIN}/
+#
+#  DEPENDÊNCIAS: postgres, redis, traefik
+#
+#══════════════════════════════════════════════════════════════════════════════
+services:
+  evolution:
+    image: evoapicloud/evolution-api:v2.3.7
+    hostname: "{{.Service.Name}}.{{.Task.Slot}}"
+    volumes:
+      - /storage/evolution/data:/evolution/instances
+    networks:
+      - network_public
+    environment:
+      # Configurações Gerais
+      - SERVER_URL=https://ws.${DOMAIN}
+      - DEL_INSTANCE=false
+      - QRCODE_LIMIT=30
+      - LANGUAGE=pt_BR
+      - CONFIG_SESSION_PHONE_CLIENT=Windows
+      - CONFIG_SESSION_PHONE_NAME=Chrome
+      # Autenticação (gere uma key em: https://www.uuidgenerator.net/)
+      - AUTHENTICATION_API_KEY=${EVOLUTION_API_KEY}
+      - AUTHENTICATION_EXPOSE_IN_FETCH_INSTANCES=true
+      # PostgreSQL
+      - DATABASE_ENABLED=true
+      - DATABASE_PROVIDER=postgresql
+      - DATABASE_CONNECTION_URI=postgresql://postgres:${POSTGRES_PASSWORD}@postgres:5432/evolution
+      - DATABASE_CONNECTION_CLIENT_NAME=evolution_v2
+      - DATABASE_SAVE_DATA_INSTANCE=true
+      - DATABASE_SAVE_DATA_NEW_MESSAGE=false
+      - DATABASE_SAVE_MESSAGE_UPDATE=false
+      - DATABASE_SAVE_DATA_CONTACTS=false
+      - DATABASE_SAVE_DATA_CHATS=true
+      - DATABASE_SAVE_DATA_LABELS=true
+      - DATABASE_SAVE_DATA_HISTORIC=true
+      - DATABASE_SAVE_IS_ON_WHATSAPP=true
+      - DATABASE_SAVE_IS_ON_WHATSAPP_DAYS=7
+      - DATABASE_DELETE_MESSAGE=true
+      # Redis
+      - CACHE_REDIS_ENABLED=true
+      - CACHE_REDIS_URI=redis://redis:6379/4
+      - CACHE_REDIS_PREFIX_KEY=evolution
+      - CACHE_REDIS_TTL=604800
+      - CACHE_REDIS_SAVE_INSTANCES=true
+      - CACHE_LOCAL_ENABLED=false
+      # Chatwoot
+      - CHATWOOT_ENABLED=false
+      - CHATWOOT_MESSAGE_READ=true
+      - CHATWOOT_IMPORT_DATABASE_CONNECTION_URI=postgresql://postgres:${POSTGRES_PASSWORD}@postgres:5432/chatwoot?sslmode=disable
+      - CHATWOOT_IMPORT_PLACEHOLDER_MEDIA_MESSAGE=true
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      resources:
+        limits:
+          cpus: "1"
+          memory: 1024M
+        reservations:
+          cpus: "0.5"
+          memory: 512M
+      restart_policy:
+        condition: any
+        delay: 10s
+        max_attempts: 0
+      update_config:
+        parallelism: 1
+        delay: 10s
+      labels:
+        - traefik.enable=true
+        - traefik.docker.network=network_public
+        - traefik.http.routers.evolution.rule=Host(`ws.${DOMAIN}`)
+        - traefik.http.routers.evolution.entrypoints=websecure
+        - traefik.http.routers.evolution.tls.certresolver=letsencrypt
+        - traefik.http.routers.evolution.service=evolution
+        - traefik.http.services.evolution.loadbalancer.server.port=8080
+        - traefik.http.services.evolution.loadbalancer.passhostheader=true
+networks:
+  network_public:
+    external: true

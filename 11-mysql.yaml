@@ -1,0 +1,90 @@
+#══════════════════════════════════════════════════════════════════════════════
+#  OK Inteligência Artificial
+#  Formação ISP AI Starter - Provedores Inteligentes
+#══════════════════════════════════════════════════════════════════════════════
+#
+#  Stack:       MySQL (Percona Server 8)
+#  Versão:      1.0.0
+#
+#  CONEXÃO INTERNA:
+#    - Host: mysql
+#    - Porta: 3306
+#
+#  CREDENCIAIS:
+#    - Usuário: root
+#    - Senha: Admin@Starter2025
+#    - Banco WordPress: wordpress (criado automaticamente)
+#
+#  DEPENDÊNCIAS: traefik (rede)
+#
+#══════════════════════════════════════════════════════════════════════════════
+services:
+  mysql:
+    image: percona:8
+    hostname: "{{.Service.Name}}.{{.Task.Slot}}"
+    command:
+      - "--character-set-server=utf8mb4"
+      - "--collation-server=utf8mb4_general_ci"
+      - "--sql-mode="
+      - "--authentication-policy=caching_sha2_password"
+      - "--secure-file-priv=/var/lib/mysql-files"
+      - "--skip-ssl"
+      - "--disable-log-bin"
+      - "--innodb-buffer-pool-size=512M"
+      - "--innodb-redo-log-capacity=256M"
+      - "--innodb-flush-log-at-trx-commit=2"
+      - "--innodb-file-per-table=1"
+      - "--max-connections=200"
+      - "--max-allowed-packet=512M"
+      - "--thread-cache-size=50"
+      - "--tmp-table-size=64M"
+      - "--max-heap-table-size=64M"
+      - "--join-buffer-size=4M"
+      - "--sort-buffer-size=4M"
+      - "--wait-timeout=600"
+      - "--interactive-timeout=600"
+      - "--performance-schema=OFF"
+      - "--log-error-verbosity=1"
+      - "--local-infile=0"
+      - "--port=3306"
+    volumes:
+      - /storage/mysql/data:/var/lib/mysql
+      - /storage/mysql/files:/var/lib/mysql-files
+      - /storage/mysql/tmp:/tmp
+    networks:
+      - network_public
+    environment:
+      # Timezone
+      - TZ=America/Sao_Paulo
+      # MySQL Root
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+      - MYSQL_ROOT_HOST=%
+      - MYSQL_INITDB_SKIP_TZINFO=1
+      # Banco WordPress (criado automaticamente)
+      - MYSQL_DATABASE=wordpress
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    deploy:
+      mode: replicated
+      replicas: 1
+      resources:
+        limits:
+          cpus: "1"
+          memory: 1024M
+        reservations:
+          cpus: "0.5"
+          memory: 512M
+      restart_policy:
+        condition: any
+        delay: 10s
+        max_attempts: 3
+      update_config:
+        parallelism: 1
+        delay: 10s
+networks:
+  network_public:
+    external: true
