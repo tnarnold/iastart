@@ -34,7 +34,7 @@ services:
       - FORCE_SSL=true
       - RAILS_LOG_TO_STDOUT=true
       # Segurança (DEVE ser igual ao admin!)
-      - SECRET_KEY_BASE=88109b45dd6f13f9e8af22663ef95f16781d2ca8c187d8500c19b2ea1b987270
+      - SECRET_KEY_BASE=${CHATWOOT_SECRET_KEY_BASE}
       # Redis
       - REDIS_URL=redis://redis:6379/3
       # PostgreSQL
@@ -44,13 +44,13 @@ services:
       - POSTGRES_DATABASE=chatwoot
       # Email (SMTP)
       - MAILER_SENDER_EMAIL=${SMTP_FROM_EMAIL}
-      - SMTP_ADDRESS=smtp.gmail.com
-      - SMTP_PORT=587
+      - SMTP_ADDRESS=${SMTP_HOST}
+      - SMTP_PORT=${SMTP_PORT}
       - SMTP_AUTHENTICATION=plain
-      #- SMTP_DOMAIN=seudominio.com.br
+      #- SMTP_DOMAIN=${DOMAIN}
       - SMTP_ENABLE_STARTTLS_AUTO=true
-      - SMTP_USERNAME=tnarnold@gmail.com
-      - SMTP_PASSWORD=vdagqcibrnvvmici
+      - SMTP_USERNAME=${SMTP_USER}
+      - SMTP_PASSWORD=${SMTP_PASSWORD}
       - SMTP_OPENSSL_VERIFY_MODE=none
       # Object Storage (S3/Minio)
       - ACTIVE_STORAGE_SERVICE=local

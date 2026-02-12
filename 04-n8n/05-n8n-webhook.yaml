@@ -27,7 +27,7 @@ services:
       - N8N_PROTOCOL=https
       - N8N_ENDPOINT_WEBHOOK=webhook
       # Segurança (não alterar após primeira execução)
-      - N8N_ENCRYPTION_KEY=94cda0b762a72d07f68564c8ba8fdc0e523b544e69fee154f64061ce6b34ab8c
+      - N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY}
       - N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS=true
       - NODE_ENV=production
       # Modo Queue (fila com Redis)
@@ -83,11 +83,11 @@ services:
       - N8N_AI_OPENAI_API_KEY=
       # SMTP (configurar antes de usar)
       - N8N_EMAIL_MODE=smtp
-      - N8N_SMTP_HOST=smtp.seudominio.com.br
-      - N8N_SMTP_PORT=587
-      - N8N_SMTP_USER=username@seudominio.com.br
+      - N8N_SMTP_HOST=${SMTP_HOST}
+      - N8N_SMTP_PORT=${SMTP_PORT}
+      - N8N_SMTP_USER=${SMTP_USER}
       - N8N_SMTP_PASS=${SMTP_PASSWORD}
-      - N8N_SMTP_SENDER=seuemail@seudominio.com.br
+      - N8N_SMTP_SENDER=${SMTP_FROM_EMAIL}
       - N8N_SMTP_SSL=true
     volumes:
       - /storage/n8n/data:/home/node/.n8n
