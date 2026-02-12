@@ -43,6 +43,21 @@ Repositório para implantação automatizada de agentes de IA e ferramentas de a
    bash install.sh
    ```
 
+### Modos de Instalação
+
+| Comando | O que instala |
+|---|---|
+| `bash install.sh` | **Completa** — Docker, Traefik, Portainer, Bancos e Apps |
+| `bash install.sh --no-apps` | **Infra + Bancos** — Docker, Traefik, Portainer, Redis, PostgreSQL, MinIO, MySQL |
+| `bash install.sh --no-databases` | **Somente Infra** — Docker, Traefik, Portainer |
+
+> **Nota:** `--no-databases` implica `--no-apps`, pois as aplicações dependem dos bancos de dados.
+
+Para ver todas as opções:
+```bash
+bash install.sh --help
+```
+
 ## Acesso aos Serviços
 
 Após a instalação (aguarde alguns minutos para tudo subir), você poderá acessar:
