@@ -38,10 +38,12 @@ services:
       - dist/index.js
       - gateway
       - --bind
-      - "0.0.0.0"
+      - lan
       - --port
       - "18789"
       - --allow-unconfigured
+    ports:
+      - "18789:18789"
     volumes:
       - /storage/openclaw/config:/home/node/.openclaw
       - /storage/openclaw/workspace:/home/node/.openclaw/workspace

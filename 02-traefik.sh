@@ -43,7 +43,11 @@ services:
       - --providers.swarm.exposedbydefault=false
       - --certificatesresolvers.letsencrypt.acme.email=$EMAIL
       - --certificatesresolvers.letsencrypt.acme.storage=/data/acme.json
-      - --certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web
+      - --certificatesresolvers.letsencrypt.acme.dnschallenge=true
+      - --certificatesresolvers.letsencrypt.acme.dnschallenge.provider=cloudflare
+      - --certificatesresolvers.letsencrypt.acme.dnschallenge.resolvers=1.1.1.1:53,8.8.8.8:53
+    environment:
+      - CF_DNS_API_TOKEN=${CF_DNS_API_TOKEN}
     ports:
       - 80:80
       - 443:443
