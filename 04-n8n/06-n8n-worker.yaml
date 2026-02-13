@@ -15,7 +15,7 @@
 #══════════════════════════════════════════════════════════════════════════════
 services:
   n8n-worker:
-    image: n8nio/n8n:latest
+    image: n8nio/n8n:1.123.5
     hostname: "{{.Service.Name}}.{{.Task.Slot}}"
     command: worker
     environment:
