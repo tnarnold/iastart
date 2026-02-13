@@ -19,6 +19,7 @@ Repositório para implantação automatizada de agentes de IA e ferramentas de a
 - **Traefik**: Proxy Reverso e SSL
 - **Portainer**: Gestão Visual
 - **Apps**: n8n, Chatwoot, Evolution API, WordPress
+- **Extras**: OpenClaw (AI Assistant, opcional)
 - **Bancos**: PostgreSQL, MySQL, Redis, MinIO
 
 ## 🚀 Instalação Rápida
@@ -50,8 +51,9 @@ Repositório para implantação automatizada de agentes de IA e ferramentas de a
 | `bash install.sh` | **Completa** — Docker, Traefik, Portainer, Bancos e Apps |
 | `bash install.sh --no-apps` | **Infra + Bancos** — Docker, Traefik, Portainer, Redis, PostgreSQL, MinIO, MySQL |
 | `bash install.sh --no-databases` | **Somente Infra** — Docker, Traefik, Portainer |
+| `bash install.sh --openclaw` | **Completa + OpenClaw** — Tudo acima + AI Assistant |
 
-> **Nota:** `--no-databases` implica `--no-apps`, pois as aplicações dependem dos bancos de dados.
+> **Nota:** `--no-databases` implica `--no-apps`. O `--openclaw` pode ser combinado com qualquer modo.
 
 Para ver todas as opções:
 ```bash
@@ -69,6 +71,7 @@ Após a instalação (aguarde alguns minutos para tudo subir), você poderá ace
 - **Evolution API**: `https://ws.seudominio.com.br`
 - **MinIO Console**: `https://cdn.seudominio.com.br`
 - **WordPress**: `https://app.seudominio.com.br`
+- **OpenClaw** (se `--openclaw`): `https://ai.seudominio.com.br`
 
 ## Estrutura de Pastas e arquivos
 

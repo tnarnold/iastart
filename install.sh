@@ -6,12 +6,13 @@
 #
 #  Script:   install.sh
 #  Funcao:   Instalacao Completa do Ambiente (All-in-One)
-#  Versao:   2.0.0
+#  Versao:   3.0.0
 #
 #  USO:
 #    bash install.sh                 # Instalacao completa
 #    bash install.sh --no-apps       # Sem aplicacoes (somente infra + bancos)
 #    bash install.sh --no-databases  # Somente Docker + Traefik + Portainer
+#    bash install.sh --openclaw      # Instalacao completa + OpenClaw
 #
 #==============================================================================
 
@@ -20,6 +21,7 @@
 #==============================================================================
 NO_APPS=false
 NO_DATABASES=false
+INSTALL_OPENCLAW=false
 
 show_help() {
     echo "Uso: bash install.sh [OPCOES]"
@@ -32,15 +34,19 @@ show_help() {
     echo "                    Instala: Docker, Traefik, Portainer"
     echo "                    (implica --no-apps, pois apps dependem dos bancos)"
     echo ""
+    echo "  --openclaw        Inclui o deploy do OpenClaw (AI Assistant)"
+    echo "                    Pode ser combinado com outros parametros"
+    echo ""
     echo "  -h, --help        Exibe esta ajuda"
     echo ""
-    echo "Sem opcoes: instalacao completa de todos os servicos."
+    echo "Sem opcoes: instalacao completa de todos os servicos (sem OpenClaw)."
 }
 
 for arg in "$@"; do
     case $arg in
         --no-apps)      NO_APPS=true ;;
         --no-databases) NO_DATABASES=true; NO_APPS=true ;;
+        --openclaw)     INSTALL_OPENCLAW=true ;;
         -h|--help)      show_help; exit 0 ;;
         *)              echo "[ERRO] Parametro desconhecido: $arg"; show_help; exit 1 ;;
     esac
@@ -77,12 +83,17 @@ if ! $NO_APPS; then
     mkdir -p /storage/wordpress/data && chown -R 33:33 /storage/wordpress
 fi
 
+if $INSTALL_OPENCLAW; then
+    mkdir -p /storage/openclaw/{config,workspace} && chown -R 1000:1000 /storage/openclaw
+fi
+
 #==============================================================================
 # CALCULO DINAMICO DE ETAPAS
 #==============================================================================
 TOTAL_STEPS=3
-$NO_DATABASES || TOTAL_STEPS=$((TOTAL_STEPS + 1))
-$NO_APPS      || TOTAL_STEPS=$((TOTAL_STEPS + 1))
+$NO_DATABASES    || TOTAL_STEPS=$((TOTAL_STEPS + 1))
+$NO_APPS         || TOTAL_STEPS=$((TOTAL_STEPS + 1))
+$INSTALL_OPENCLAW && TOTAL_STEPS=$((TOTAL_STEPS + 1))
 STEP=0
 
 #==============================================================================
@@ -101,6 +112,7 @@ elif $NO_APPS; then
 else
     echo "  Modo: Instalacao Completa"
 fi
+$INSTALL_OPENCLAW && echo "  Extra: OpenClaw (AI Assistant)"
 echo "=============================================================================="
 
 #==============================================================================
@@ -130,7 +142,7 @@ bash 03-portainer.sh
 #==============================================================================
 # AUTENTICACAO PORTAINER API (necessaria para deploy de stacks)
 #==============================================================================
-if ! $NO_DATABASES; then
+if ! $NO_DATABASES || $INSTALL_OPENCLAW; then
     source portainer_utils.sh
     check_deps
     authenticate "$PORTAINER_USER" "$PORTAINER_PASSWORD" || exit 1
@@ -207,6 +219,18 @@ if ! $NO_APPS; then
 fi
 
 #==============================================================================
+# ETAPA: OPENCLAW (opcional)
+#==============================================================================
+if $INSTALL_OPENCLAW; then
+    STEP=$((STEP + 1))
+    echo
+    echo ">>> [$STEP/$TOTAL_STEPS] Deploy do OpenClaw (AI Assistant)..."
+
+    envsubst < 10-openclaw.yaml > /tmp/openclaw_deploy.yaml
+    deploy_stack "openclaw" "/tmp/openclaw_deploy.yaml"
+fi
+
+#==============================================================================
 # CONCLUSAO
 #==============================================================================
 echo
@@ -219,6 +243,7 @@ elif $NO_APPS; then
 else
     echo "  Todos os servicos instalados"
 fi
+$INSTALL_OPENCLAW && echo "  + OpenClaw (AI Assistant)"
 echo "=============================================================================="
 echo "Verifique os servicos com: docker service ls"
 echo "Logs de instalacao salvos em: $LOG_FILE"
