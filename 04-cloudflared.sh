@@ -55,6 +55,17 @@ cf_api() {
     curl "${args[@]}"
 }
 
+# Usa CF_DNS_API_TOKEN para operacoes de DNS (token separado com permissao DNS:Edit)
+cf_dns_api() {
+    local method=$1 endpoint=$2 data=$3
+    local token="${CF_DNS_API_TOKEN:-$CF_TUNNEL_API_TOKEN}"
+    local args=(-s -X "$method" "${CF_API}${endpoint}" \
+        -H "Authorization: Bearer ${token}" \
+        -H "Content-Type: application/json")
+    [ -n "$data" ] && args+=(-d "$data")
+    curl "${args[@]}"
+}
+
 #==============================================================================
 # VALIDACOES
 #==============================================================================
@@ -117,9 +128,9 @@ if [ "$1" = "--delete" ]; then
         log_info "Removendo registros DNS do tunnel..."
         ZONE_ID="$CF_ZONE_ID"
         if [ -n "$ZONE_ID" ] && [ "$ZONE_ID" != "null" ]; then
-            TUNNEL_CNAMES=$(cf_api GET "/zones/${ZONE_ID}/dns_records?type=CNAME&content=${TUNNEL_ID}.cfargotunnel.com&per_page=50")
+            TUNNEL_CNAMES=$(cf_dns_api GET "/zones/${ZONE_ID}/dns_records?type=CNAME&content=${TUNNEL_ID}.cfargotunnel.com&per_page=50")
             echo "$TUNNEL_CNAMES" | jq -r '.result[].id' | while read -r RECORD_ID; do
-                cf_api DELETE "/zones/${ZONE_ID}/dns_records/${RECORD_ID}" > /dev/null
+                cf_dns_api DELETE "/zones/${ZONE_ID}/dns_records/${RECORD_ID}" > /dev/null
             done
             log_success "DNS records removidos"
         fi
@@ -261,17 +272,17 @@ else
         FULL_HOST="${sub}.${DOMAIN}"
 
         # Verifica se registro ja existe
-        EXISTING_DNS=$(cf_api GET "/zones/${ZONE_ID}/dns_records?type=CNAME&name=${FULL_HOST}")
+        EXISTING_DNS=$(cf_dns_api GET "/zones/${ZONE_ID}/dns_records?type=CNAME&name=${FULL_HOST}")
         EXISTING_ID=$(echo "$EXISTING_DNS" | jq -r '.result[0].id // empty')
 
         if [ -n "$EXISTING_ID" ]; then
             # Atualiza registro existente
-            DNS_RESULT=$(cf_api PUT "/zones/${ZONE_ID}/dns_records/${EXISTING_ID}" \
+            DNS_RESULT=$(cf_dns_api PUT "/zones/${ZONE_ID}/dns_records/${EXISTING_ID}" \
                 "{\"type\":\"CNAME\",\"name\":\"${sub}\",\"content\":\"${TUNNEL_ID}.cfargotunnel.com\",\"proxied\":true}")
             ACTION="atualizado"
         else
             # Cria novo registro
-            DNS_RESULT=$(cf_api POST "/zones/${ZONE_ID}/dns_records" \
+            DNS_RESULT=$(cf_dns_api POST "/zones/${ZONE_ID}/dns_records" \
                 "{\"type\":\"CNAME\",\"name\":\"${sub}\",\"content\":\"${TUNNEL_ID}.cfargotunnel.com\",\"proxied\":true}")
             ACTION="criado"
         fi
