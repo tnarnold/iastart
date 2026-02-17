@@ -114,6 +114,12 @@ services:
         # Middleware SSL para Websockets
         - traefik.http.middlewares.chatwoot-sslheader.headers.customrequestheaders.X-Forwarded-Proto=https
         - traefik.http.routers.chatwoot-admin.middlewares=chatwoot-sslheader@swarm
+        # Roteador WebSocket para ActionCable (/cable e /ws)
+        - traefik.http.routers.chatwoot-ws.rule=Host(`chat.${DOMAIN}`) && (PathPrefix(`/cable`) || PathPrefix(`/ws`))
+        - traefik.http.routers.chatwoot-ws.entrypoints=websecure
+        - traefik.http.routers.chatwoot-ws.tls.certresolver=letsencrypt
+        - traefik.http.routers.chatwoot-ws.service=chatwoot-admin
+        - traefik.http.routers.chatwoot-ws.middlewares=chatwoot-sslheader@swarm
 networks:
   network_public:
     external: true
