@@ -204,29 +204,29 @@ echo "==========================================================================
 echo
 
 # Lista de subdomínios a configurar
-# Cada entrada: subdominio:servico:porta
+# Cada entrada: subdominio:servico:porta:protocolo
 SUBDOMAINS=(
-    "wf:traefik:80"
-    "wb:traefik:80"
-    "app:traefik:80"
-    "ws:traefik:80"
-    "chat:traefik:80"
-    "s3:traefik:80"
-    "cdn:traefik:80"
-    "pn:traefik:80"
+    "wf:traefik:443"
+    "wb:traefik:443"
+    "app:traefik:443"
+    "ws:traefik:443"
+    "chat:traefik:443"
+    "s3:traefik:443"
+    "cdn:traefik:443"
+    "pn:traefik:443"
 )
 
 # Adiciona OpenClaw se instalado
 if $INSTALL_OPENCLAW 2>/dev/null || docker service ls 2>/dev/null | grep -q openclaw; then
-    SUBDOMAINS+=("ai:traefik:80")
+    SUBDOMAINS+=("ai:traefik:443")
 fi
 
-# Monta ingress rules
+# Monta ingress rules (noTLSVerify para aceitar cert interno do Traefik)
 INGRESS_RULES="["
 for entry in "${SUBDOMAINS[@]}"; do
     IFS=':' read -r sub service port <<< "$entry"
     hostname="${sub}.${DOMAIN}"
-    INGRESS_RULES+="{\"hostname\":\"${hostname}\",\"service\":\"http://${service}:${port}\",\"originRequest\":{}},"
+    INGRESS_RULES+="{\"hostname\":\"${hostname}\",\"service\":\"https://${service}:${port}\",\"originRequest\":{\"noTLSVerify\":true}},"
 done
 # Catch-all rule (obrigatório)
 INGRESS_RULES+="{\"service\":\"http_status:404\"}"
@@ -241,7 +241,7 @@ if echo "$CONFIG_RESULT" | jq -r '.success' | grep -q true; then
     log_success "Roteamento configurado"
     for entry in "${SUBDOMAINS[@]}"; do
         IFS=':' read -r sub service port <<< "$entry"
-        echo "         ${sub}.${DOMAIN} -> http://${service}:${port}"
+        echo "         ${sub}.${DOMAIN} -> https://${service}:${port}"
     done
 else
     log_error "Falha ao configurar roteamento"
