@@ -33,9 +33,11 @@ services:
       - RAILS_ENV=production
       - INSTALLATION_ENV=docker
       - FRONTEND_URL=https://chat.${DOMAIN}
+      - ACTION_CABLE_URL=wss://chat.${DOMAIN}/cable
       - DEFAULT_LOCALE=pt_BR
       - FORCE_SSL=true
       - RAILS_LOG_TO_STDOUT=true
+      - LOG_LEVEL=info
       # Segurança (gere uma nova: openssl rand -hex 64)
       - SECRET_KEY_BASE=${CHATWOOT_SECRET_KEY_BASE}
       - ENABLE_ACCOUNT_SIGNUP=false
