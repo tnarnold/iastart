@@ -5,10 +5,10 @@ Repositório para implantação automatizada de agentes de IA e ferramentas de a
 ## ⚠️ Requisitos Críticos
 
 > [!IMPORTANT]
-> **IP PÚBLICO VÁLIDO OBRIGATÓRIO**
-> Para que o sistema funcione corretamente, especialmente a geração de certificadoss SSL (HTTPS) pelo Traefik, este servidor **PRECISA** ter um endereço IP Público Válido e acessível externamente nas portas 80 e 443.
+> **IP PÚBLICO VÁLIDO OBRIGATÓRIO** (a menos que use Cloudflare Tunnel)
+> Para que o sistema funcione corretamente com acesso direto, o servidor **PRECISA** ter um endereço IP Público Válido nas portas 80 e 443.
 >
-> Se você estiver atrás de um CGNAT ou Firewall restritivo, o SSL do Let's Encrypt falhará e os serviços não ficarão acessíveis.
+> Se você estiver atrás de um CGNAT ou Firewall restritivo, use a opção `--tunnel` para acesso via Cloudflare Tunnel (sem portas abertas).
 
 > [!NOTE]
 > **Compatibilidade**: O script de instalação foi testado e validado no **Debian 13**.
@@ -19,7 +19,7 @@ Repositório para implantação automatizada de agentes de IA e ferramentas de a
 - **Traefik**: Proxy Reverso e SSL
 - **Portainer**: Gestão Visual
 - **Apps**: n8n, Chatwoot, Evolution API, WordPress
-- **Extras**: OpenClaw (AI Assistant, opcional)
+- **Extras**: OpenClaw (AI Assistant), Cloudflare Tunnel (opcionais)
 - **Bancos**: PostgreSQL, MySQL, Redis, MinIO
 
 ## 🚀 Instalação Rápida
@@ -52,8 +52,10 @@ Repositório para implantação automatizada de agentes de IA e ferramentas de a
 | `bash install.sh --no-apps` | **Infra + Bancos** — Docker, Traefik, Portainer, Redis, PostgreSQL, MinIO, MySQL |
 | `bash install.sh --no-databases` | **Somente Infra** — Docker, Traefik, Portainer |
 | `bash install.sh --openclaw` | **Completa + OpenClaw** — Tudo acima + AI Assistant |
+| `bash install.sh --tunnel` | **Completa + Tunnel** — Tudo acima + Cloudflare Tunnel |
+| `bash install.sh --openclaw --tunnel` | **Completa + Extras** — Tudo + OpenClaw + Tunnel |
 
-> **Nota:** `--no-databases` implica `--no-apps`. O `--openclaw` pode ser combinado com qualquer modo.
+> **Nota:** `--no-databases` implica `--no-apps`. As flags `--openclaw` e `--tunnel` podem ser combinadas com qualquer modo.
 
 Para ver todas as opções:
 ```bash
@@ -76,6 +78,7 @@ Após a instalação (aguarde alguns minutos para tudo subir), você poderá ace
 ## Estrutura de Pastas e arquivos
 
 - `01-docker.sh`: Instalação base Docker/Swarm
+- `04-cloudflared.sh`: Setup automático do Cloudflare Tunnel
 - `install.sh`: Script mestre de automação
 - `chatwoot/`, `04-n8n/`: Configurações específicas das apps
 
@@ -86,9 +89,32 @@ Se o SSL não funcionar (cadeado vermelho ou erro de certificado):
 2. Verifique se as portas 80 e 443 estão liberadas no Firewall do provedor de nuvem (AWS/DigitalOcean/etc).
 3. Verifique os logs do Traefik: `docker service logs -f traefik_traefik`.
 
+## ☁️ Cloudflare Tunnel (Acesso sem portas abertas)
+
+Se o seu servidor está atrás de CGNAT ou não tem IP público, use o Cloudflare Tunnel:
+
+1. **Crie um API Token** no [dashboard Cloudflare](https://dash.cloudflare.com/profile/api-tokens) com:
+   - `Account > Cloudflare Tunnel > Edit`
+   - `Zone > DNS > Edit`
+
+2. **Obtenha seu Account ID** na visão geral do domínio no dashboard
+
+3. **Configure no `.env`**:
+   ```env
+   CF_ACCOUNT_ID=seu_account_id
+   CF_TUNNEL_API_TOKEN=seu_api_token
+   ```
+
+4. **Instale com tunnel** ou rode separadamente:
+   ```bash
+   bash install.sh --tunnel        # Durante instalação
+   bash 04-cloudflared.sh           # Separadamente
+   bash 04-cloudflared.sh --delete  # Remover tunnel
+   ```
+
 ## 🗺️ Roadmap
 
-- [ ] **SSL Cloudflare**: Adicionar suporte a DNS Challenge (API Cloudflare) no Traefik.
+- [x] **Cloudflare Tunnel**: Acesso externo sem portas abertas via Tunnel.
 - [ ] **Reorganização**: Melhorar estrutura de arquivos e diretórios.
-- [ ] **Menu Interativo**: Criar instalador com seleção de serviços (O que instalar).
-- [ ] **Firewall de Gerência**: Restringir acesso às portas de gerência dos aplicativos administrativos.
+- [ ] **Menu Interativo**: Criar instalador com seleção de serviços.
+- [ ] **Firewall de Gerência**: Restringir acesso às portas de gerência.

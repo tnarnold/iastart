@@ -1,0 +1,49 @@
+#══════════════════════════════════════════════════════════════════════════════
+#  OK Inteligência Artificial
+#  Formação ISP AI Starter - Provedores Inteligentes
+#══════════════════════════════════════════════════════════════════════════════
+#
+#  Stack:       Cloudflare Tunnel (Acesso Externo Seguro)
+#  Versão:      1.0.0
+#
+#  FUNÇÃO:
+#    Cria um túnel seguro entre a Cloudflare e o servidor local,
+#    eliminando a necessidade de portas 80/443 abertas na internet.
+#    O tráfego é roteado: Internet → Cloudflare → Tunnel → Traefik → Serviços
+#
+#  DEPENDÊNCIAS: traefik (rede + roteamento)
+#
+#  CONFIGURAÇÃO:
+#    1. Execute 04-cloudflared.sh para criar o tunnel automaticamente
+#    2. Ou crie manualmente no dashboard Cloudflare e cole o token no .env
+#
+#══════════════════════════════════════════════════════════════════════════════
+services:
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    hostname: "{{.Service.Name}}.{{.Task.Slot}}"
+    command: tunnel run
+    environment:
+      - TUNNEL_TOKEN=${CLOUDFLARE_TUNNEL_TOKEN}
+    networks:
+      - network_public
+    deploy:
+      mode: replicated
+      replicas: 1
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 256M
+        reservations:
+          cpus: "0.1"
+          memory: 128M
+      restart_policy:
+        condition: any
+        delay: 10s
+        max_attempts: 0
+      update_config:
+        parallelism: 1
+        delay: 10s
+networks:
+  network_public:
+    external: true

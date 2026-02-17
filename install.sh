@@ -13,6 +13,7 @@
 #    bash install.sh --no-apps       # Sem aplicacoes (somente infra + bancos)
 #    bash install.sh --no-databases  # Somente Docker + Traefik + Portainer
 #    bash install.sh --openclaw      # Instalacao completa + OpenClaw
+#    bash install.sh --tunnel        # Instalacao completa + Cloudflare Tunnel
 #
 #==============================================================================
 
@@ -22,6 +23,7 @@
 NO_APPS=false
 NO_DATABASES=false
 INSTALL_OPENCLAW=false
+INSTALL_TUNNEL=false
 
 show_help() {
     echo "Uso: bash install.sh [OPCOES]"
@@ -37,9 +39,12 @@ show_help() {
     echo "  --openclaw        Inclui o deploy do OpenClaw (AI Assistant)"
     echo "                    Pode ser combinado com outros parametros"
     echo ""
+    echo "  --tunnel          Configura Cloudflare Tunnel para acesso externo"
+    echo "                    Requer CF_ACCOUNT_ID e CF_TUNNEL_API_TOKEN no .env"
+    echo ""
     echo "  -h, --help        Exibe esta ajuda"
     echo ""
-    echo "Sem opcoes: instalacao completa de todos os servicos (sem OpenClaw)."
+    echo "Sem opcoes: instalacao completa de todos os servicos (sem OpenClaw/Tunnel)."
 }
 
 for arg in "$@"; do
@@ -47,6 +52,7 @@ for arg in "$@"; do
         --no-apps)      NO_APPS=true ;;
         --no-databases) NO_DATABASES=true; NO_APPS=true ;;
         --openclaw)     INSTALL_OPENCLAW=true ;;
+        --tunnel)       INSTALL_TUNNEL=true ;;
         -h|--help)      show_help; exit 0 ;;
         *)              echo "[ERRO] Parametro desconhecido: $arg"; show_help; exit 1 ;;
     esac
@@ -94,6 +100,7 @@ TOTAL_STEPS=3
 $NO_DATABASES    || TOTAL_STEPS=$((TOTAL_STEPS + 1))
 $NO_APPS         || TOTAL_STEPS=$((TOTAL_STEPS + 1))
 $INSTALL_OPENCLAW && TOTAL_STEPS=$((TOTAL_STEPS + 1))
+$INSTALL_TUNNEL && TOTAL_STEPS=$((TOTAL_STEPS + 1))
 STEP=0
 
 #==============================================================================
@@ -113,6 +120,7 @@ else
     echo "  Modo: Instalacao Completa"
 fi
 $INSTALL_OPENCLAW && echo "  Extra: OpenClaw (AI Assistant)"
+$INSTALL_TUNNEL && echo "  Extra: Cloudflare Tunnel"
 echo "=============================================================================="
 
 #==============================================================================
@@ -231,6 +239,17 @@ if $INSTALL_OPENCLAW; then
 fi
 
 #==============================================================================
+# ETAPA: CLOUDFLARE TUNNEL (opcional)
+#==============================================================================
+if $INSTALL_TUNNEL; then
+    STEP=$((STEP + 1))
+    echo
+    echo ">>> [$STEP/$TOTAL_STEPS] Configurando Cloudflare Tunnel..."
+
+    bash 04-cloudflared.sh
+fi
+
+#==============================================================================
 # CONCLUSAO
 #==============================================================================
 echo
@@ -244,6 +263,7 @@ else
     echo "  Todos os servicos instalados"
 fi
 $INSTALL_OPENCLAW && echo "  + OpenClaw (AI Assistant)"
+$INSTALL_TUNNEL && echo "  + Cloudflare Tunnel (Acesso Externo)"
 echo "=============================================================================="
 echo "Verifique os servicos com: docker service ls"
 echo "Logs de instalacao salvos em: $LOG_FILE"
