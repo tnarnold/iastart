@@ -13,6 +13,7 @@
 #  VARIAVEIS NECESSARIAS NO .env:
 #    - CF_ACCOUNT_ID       (ID da conta Cloudflare)
 #    - CF_TUNNEL_API_TOKEN  (API token com permissao Tunnel:Edit + DNS:Edit)
+#    - CF_ZONE_ID           (Zone ID do dominio - encontre no dashboard Cloudflare)
 #    - DOMAIN              (dominio principal)
 #
 #  USO:
@@ -76,6 +77,7 @@ fi
 # Variaveis obrigatorias
 [ -z "$CF_ACCOUNT_ID" ] && { log_error "CF_ACCOUNT_ID nao definido no .env"; exit 1; }
 [ -z "$CF_TUNNEL_API_TOKEN" ] && { log_error "CF_TUNNEL_API_TOKEN nao definido no .env"; exit 1; }
+[ -z "$CF_ZONE_ID" ] && { log_error "CF_ZONE_ID nao definido no .env. Encontre em: Cloudflare Dashboard > Dominio > Visao Geral (lado direito)"; exit 1; }
 [ -z "$DOMAIN" ] && { log_error "DOMAIN nao definido no .env"; exit 1; }
 
 # Docker e Swarm
@@ -113,7 +115,7 @@ if [ "$1" = "--delete" ]; then
 
         # Remove DNS records
         log_info "Removendo registros DNS do tunnel..."
-        ZONE_ID=$(cf_api GET "/zones?name=${DOMAIN}" | jq -r '.result[0].id')
+        ZONE_ID="$CF_ZONE_ID"
         if [ -n "$ZONE_ID" ] && [ "$ZONE_ID" != "null" ]; then
             TUNNEL_CNAMES=$(cf_api GET "/zones/${ZONE_ID}/dns_records?type=CNAME&content=${TUNNEL_ID}.cfargotunnel.com&per_page=50")
             echo "$TUNNEL_CNAMES" | jq -r '.result[].id' | while read -r RECORD_ID; do
@@ -245,11 +247,11 @@ echo "  ETAPA 3/4: Criando registros DNS"
 echo "=============================================================================="
 echo
 
-# Obtém Zone ID
-ZONE_ID=$(cf_api GET "/zones?name=${DOMAIN}" | jq -r '.result[0].id')
+# Usa CF_ZONE_ID do .env
+ZONE_ID="$CF_ZONE_ID"
 
 if [ -z "$ZONE_ID" ] || [ "$ZONE_ID" = "null" ]; then
-    log_error "Nao foi possivel encontrar a zona DNS para: $DOMAIN"
+    log_error "CF_ZONE_ID nao definido no .env"
     log_warn "Crie os registros CNAME manualmente apontando para: ${TUNNEL_ID}.cfargotunnel.com"
 else
     log_info "Zone ID: $ZONE_ID"
