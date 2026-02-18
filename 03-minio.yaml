@@ -60,7 +60,7 @@ services:
       labels:
         # API S3 (porta 9000)
         - traefik.enable=true
-        - traefik.docker.network=network_public
+        - traefik.swarm.network=network_public
         - traefik.http.routers.minio-s3.rule=Host(`s3.${DOMAIN}`)
         - traefik.http.routers.minio-s3.entrypoints=websecure
         - traefik.http.routers.minio-s3.tls.certresolver=letsencrypt

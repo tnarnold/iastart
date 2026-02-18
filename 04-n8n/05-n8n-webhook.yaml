@@ -119,7 +119,7 @@ services:
         delay: 10s
       labels:
         - traefik.enable=true
-        - traefik.docker.network=network_public
+        - traefik.swarm.network=network_public
         - traefik.http.routers.n8n-webhook.rule=Host(`wb.${DOMAIN}`)
         - traefik.http.routers.n8n-webhook.entrypoints=websecure
         - traefik.http.routers.n8n-webhook.tls.certresolver=letsencrypt
