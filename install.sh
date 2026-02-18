@@ -10,6 +10,7 @@
 #
 #  USO:
 #    bash install.sh                 # Instalacao completa
+#    bash install.sh --apps-only     # Somente bancos + apps (pula Docker/Traefik/Portainer)
 #    bash install.sh --no-apps       # Sem aplicacoes (somente infra + bancos)
 #    bash install.sh --no-databases  # Somente Docker + Traefik + Portainer
 #    bash install.sh --openclaw      # Instalacao completa + OpenClaw
@@ -22,6 +23,7 @@
 #==============================================================================
 NO_APPS=false
 NO_DATABASES=false
+APPS_ONLY=false
 INSTALL_OPENCLAW=false
 INSTALL_TUNNEL=false
 
@@ -29,6 +31,9 @@ show_help() {
     echo "Uso: bash install.sh [OPCOES]"
     echo ""
     echo "OPCOES:"
+    echo "  --apps-only       Instala somente bancos + apps (pula Docker/Traefik/Portainer)"
+    echo "                    Ideal para reinstalar apps apos limpeza (98-limpeza-apps.sh)"
+    echo ""
     echo "  --no-apps         Nao instala aplicacoes (n8n, Chatwoot, Evolution, WordPress)"
     echo "                    Instala: Docker, Traefik, Portainer + Bancos de Dados"
     echo ""
@@ -49,6 +54,7 @@ show_help() {
 
 for arg in "$@"; do
     case $arg in
+        --apps-only)    APPS_ONLY=true ;;
         --no-apps)      NO_APPS=true ;;
         --no-databases) NO_DATABASES=true; NO_APPS=true ;;
         --openclaw)     INSTALL_OPENCLAW=true ;;
@@ -96,7 +102,11 @@ fi
 #==============================================================================
 # CALCULO DINAMICO DE ETAPAS
 #==============================================================================
-TOTAL_STEPS=3
+if $APPS_ONLY; then
+    TOTAL_STEPS=0
+else
+    TOTAL_STEPS=3
+fi
 $NO_DATABASES    || TOTAL_STEPS=$((TOTAL_STEPS + 1))
 $NO_APPS         || TOTAL_STEPS=$((TOTAL_STEPS + 1))
 $INSTALL_OPENCLAW && TOTAL_STEPS=$((TOTAL_STEPS + 1))
@@ -112,7 +122,9 @@ exec > >(tee -a ${LOG_FILE}) 2>&1
 echo "=============================================================================="
 echo "  INICIANDO INSTALACAO"
 echo "  Data: $(date)"
-if $NO_DATABASES; then
+if $APPS_ONLY; then
+    echo "  Modo: Somente Apps (bancos + aplicacoes, sem Docker/Traefik/Portainer)"
+elif $NO_DATABASES; then
     echo "  Modo: Somente Infraestrutura (Docker + Traefik + Portainer)"
 elif $NO_APPS; then
     echo "  Modo: Infraestrutura + Bancos de Dados (sem aplicacoes)"
@@ -126,26 +138,32 @@ echo "==========================================================================
 #==============================================================================
 # ETAPA: DOCKER E SWARM
 #==============================================================================
-STEP=$((STEP + 1))
-echo
-echo ">>> [$STEP/$TOTAL_STEPS] Configurando Docker e Swarm..."
-bash 01-docker.sh
+if ! $APPS_ONLY; then
+    STEP=$((STEP + 1))
+    echo
+    echo ">>> [$STEP/$TOTAL_STEPS] Configurando Docker e Swarm..."
+    bash 01-docker.sh
+fi
 
 #==============================================================================
 # ETAPA: TRAEFIK
 #==============================================================================
-STEP=$((STEP + 1))
-echo
-echo ">>> [$STEP/$TOTAL_STEPS] Deploy do Traefik..."
-bash 02-traefik.sh
+if ! $APPS_ONLY; then
+    STEP=$((STEP + 1))
+    echo
+    echo ">>> [$STEP/$TOTAL_STEPS] Deploy do Traefik..."
+    bash 02-traefik.sh
+fi
 
 #==============================================================================
 # ETAPA: PORTAINER
 #==============================================================================
-STEP=$((STEP + 1))
-echo
-echo ">>> [$STEP/$TOTAL_STEPS] Deploy do Portainer..."
-bash 03-portainer.sh
+if ! $APPS_ONLY; then
+    STEP=$((STEP + 1))
+    echo
+    echo ">>> [$STEP/$TOTAL_STEPS] Deploy do Portainer..."
+    bash 03-portainer.sh
+fi
 
 #==============================================================================
 # AUTENTICACAO PORTAINER API (necessaria para deploy de stacks)
@@ -255,7 +273,9 @@ fi
 echo
 echo "=============================================================================="
 echo "  INSTALACAO CONCLUIDA!"
-if $NO_DATABASES; then
+if $APPS_ONLY; then
+    echo "  Servicos instalados: Bancos de Dados + Aplicacoes"
+elif $NO_DATABASES; then
     echo "  Servicos instalados: Docker, Traefik, Portainer"
 elif $NO_APPS; then
     echo "  Servicos instalados: Docker, Traefik, Portainer + Bancos de Dados"

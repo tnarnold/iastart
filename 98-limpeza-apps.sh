@@ -174,17 +174,17 @@ log_success "Containers e imagens limpos"
 #==============================================================================
 # ETAPA 4: REMOVER DADOS
 #==============================================================================
-echo "[4/4] Removendo dados..."
+echo "[4/4] Removendo dados (mantendo estrutura de diretorios)..."
 for path in "${STORAGE_REMOVER[@]}"; do
     if [ -d "$path" ]; then
-        rm -rf "$path"
-        log_success "Removido: $path"
+        find "$path" -mindepth 2 -delete 2>/dev/null
+        log_success "Limpo: $path (diretorios mantidos)"
     fi
 done
 
 if [ "$1" = "--tunnel" ] && [ -d "/storage/cloudflared" ]; then
-    rm -rf /storage/cloudflared
-    log_success "Removido: /storage/cloudflared"
+    find /storage/cloudflared -mindepth 2 -delete 2>/dev/null
+    log_success "Limpo: /storage/cloudflared (diretorios mantidos)"
 fi
 
 #==============================================================================
