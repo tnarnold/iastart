@@ -222,6 +222,15 @@ run_check() {
     fi
     echo
 
+    # Auto Backup dos certificados se existirem e forem validos
+    if [ -f "$ACME_FILE" ]; then
+        if grep -q "privateKey" "$ACME_FILE"; then
+            mkdir -p certs
+            cp "$ACME_FILE" certs/acme.json
+            echo -e "  ${GREEN}[BACKUP]${NC}  Certificados salvos em certs/acme.json"
+        fi
+    fi
+
     #--------------------------------------------------------------------------
     # 6. ACESSIBILIDADE HTTP
     #--------------------------------------------------------------------------
@@ -296,7 +305,7 @@ if ! $NO_DATABASES; then
     mkdir -p /storage/redis/{data,logs,config} && chown -R 999:1000 /storage/redis
     mkdir -p /storage/postgres/{data,logs,config} && chown -R 999:999 /storage/postgres
     mkdir -p /storage/minio/{data,logs,config} && chown -R 1000:1000 /storage/minio
-    mkdir -p /storage/mysql/{data,files,tmp} && chown -R 1001:1001 /storage/mysql
+    mkdir -p /storage/mysql/{data,files,tmp} && chown -R 999:999 /storage/mysql
 fi
 
 if ! $NO_APPS; then
@@ -411,12 +420,12 @@ if ! $NO_DATABASES; then
     # Garante que o diretorio esteja limpo e com permissoes se for primeira instalacao
     if [ -z "$(ls -A /storage/mysql/data 2>/dev/null)" ]; then
         echo "     [INFO] Diretorio MySQL vazio. Ajustando permissoes..."
-        chown -R 1001:1001 /storage/mysql
+        chown -R 999:999 /storage/mysql
     else
         echo "     [INFO] Diretorio MySQL nao esta vazio. Mantendo dados existentes."
         # Se falhou antes, pode ter lixo. O usuario deve limpar manualmente ou usar 98-limpeza-apps.sh
         # Mas garantimos a permissao mesmo assim
-        chown -R 1001:1001 /storage/mysql
+        chown -R 999:999 /storage/mysql
     fi
     
     envsubst < 11-mysql.yaml > /tmp/11-mysql_deploy.yaml

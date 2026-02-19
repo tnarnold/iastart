@@ -14,7 +14,18 @@
 EMAIL="${SMTP_FROM_EMAIL}"
 # Estrutura de diretórios
 mkdir -p /storage/traefik/{data,logs,config}
-touch /storage/traefik/data/acme.json
+
+# Verifica se existe backup de certificados no repositorio
+if [ -f "certs/acme.json" ]; then
+    echo "[INFO] Restaurando backup de certificados SSL (certs/acme.json)..."
+    cp certs/acme.json /storage/traefik/data/acme.json
+else
+    # Se nao existe, cria vazio apenas se nao existir no destino
+    if [ ! -f "/storage/traefik/data/acme.json" ]; then
+        touch /storage/traefik/data/acme.json
+    fi
+fi
+
 chmod 600 /storage/traefik/data/acme.json
 # Remove stack existente
 docker stack rm traefik 2>/dev/null; sleep 3
@@ -46,6 +57,8 @@ services:
       - --certificatesresolvers.letsencrypt.acme.dnschallenge=true
       - --certificatesresolvers.letsencrypt.acme.dnschallenge.provider=cloudflare
       - --certificatesresolvers.letsencrypt.acme.dnschallenge.resolvers=1.1.1.1:53,8.8.8.8:53
+      # Staging para evitar rate limit (comente para produção)
+      - --certificatesresolvers.letsencrypt.acme.caserver=https://acme-staging-v02.api.letsencrypt.org/directory
     environment:
       - CF_DNS_API_TOKEN=${CF_DNS_API_TOKEN}
     ports:
