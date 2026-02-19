@@ -71,31 +71,6 @@ for arg in "$@"; do
 done
 
 #==============================================================================
-# FUNCAO: MERGE DE YAMLS
-# Combina multiplos arquivos YAML Docker Compose em um unico documento.
-# Necessario porque a API do Portainer nao suporta multi-document YAML (---).
-# Uso: merge_yaml <output> <input1> <input2> [input3...]
-#==============================================================================
-merge_yaml() {
-    local output="$1"
-    shift
-    local inputs=("$@")
-
-    # Para cada arquivo, extrai somente as linhas do bloco "services:" (indentadas)
-    # e ignora as linhas do bloco "networks:" e comentarios top-level
-    {
-        echo "services:"
-        for f in "${inputs[@]}"; do
-            # Extrai o conteudo entre "services:" e "networks:" (ou EOF)
-            sed -n '/^services:/,/^networks:/{ /^services:/d; /^networks:/d; p; }' "$f"
-        done
-        echo "networks:"
-        echo "  network_public:"
-        echo "    external: true"
-    } > "$output"
-}
-
-#==============================================================================
 # FUNCAO: CHECK DE SERVICOS
 # Verifica se todos os servicos estao rodando corretamente
 #==============================================================================
@@ -142,7 +117,7 @@ run_check() {
     # 2. STACKS
     #--------------------------------------------------------------------------
     echo -e "${CYAN}[2/6] Stacks${NC}"
-    local EXPECTED_STACKS=("traefik" "portainer" "redis" "postgres" "minio" "mysql" "n8n" "chatwoot" "evolution" "wordpress")
+    local EXPECTED_STACKS=("traefik" "portainer" "redis" "postgres" "minio" "mysql" "n8n-editor" "n8n-webhook" "n8n-worker" "chatwoot-admin" "chatwoot-sidekiq" "evolution" "wordpress")
     local ACTIVE_STACKS=$(docker stack ls --format '{{.Name}}' 2>/dev/null)
 
     for stack in "${EXPECTED_STACKS[@]}"; do
@@ -177,11 +152,11 @@ run_check() {
         "postgres_postgres"
         "minio_minio"
         "mysql_mysql"
-        "n8n_n8n-editor"
-        "n8n_n8n-webhook"
-        "n8n_n8n-worker"
-        "chatwoot_chatwoot-admin"
-        "chatwoot_chatwoot-sidekiq"
+        "n8n-editor_n8n-editor"
+        "n8n-webhook_n8n-webhook"
+        "n8n-worker_n8n-worker"
+        "chatwoot-admin_chatwoot-admin"
+        "chatwoot-sidekiq_chatwoot-sidekiq"
         "evolution_evolution"
         "wordpress_wordpress"
     )
@@ -448,18 +423,25 @@ if ! $NO_APPS; then
     echo
     echo ">>> [$STEP/$TOTAL_STEPS] Deploy das Aplicacoes..."
 
-    echo "   > n8n..."
+    echo "   > n8n Editor..."
     envsubst < 04-n8n/04-n8n-editor.yaml > /tmp/n8n-editor.yaml
-    envsubst < 04-n8n/05-n8n-webhook.yaml > /tmp/n8n-webhook.yaml
-    envsubst < 04-n8n/06-n8n-worker.yaml > /tmp/n8n-worker.yaml
-    merge_yaml /tmp/n8n_full_deploy.yaml /tmp/n8n-editor.yaml /tmp/n8n-webhook.yaml /tmp/n8n-worker.yaml
-    deploy_stack "n8n" "/tmp/n8n_full_deploy.yaml"
+    deploy_stack "n8n-editor" "/tmp/n8n-editor.yaml"
 
-    echo "   > Chatwoot..."
+    echo "   > n8n Webhook..."
+    envsubst < 04-n8n/05-n8n-webhook.yaml > /tmp/n8n-webhook.yaml
+    deploy_stack "n8n-webhook" "/tmp/n8n-webhook.yaml"
+
+    echo "   > n8n Worker..."
+    envsubst < 04-n8n/06-n8n-worker.yaml > /tmp/n8n-worker.yaml
+    deploy_stack "n8n-worker" "/tmp/n8n-worker.yaml"
+
+    echo "   > Chatwoot Admin..."
     envsubst < chatwoot/07-chatwoot-admin.yaml > /tmp/chatwoot-admin.yaml
+    deploy_stack "chatwoot-admin" "/tmp/chatwoot-admin.yaml"
+
+    echo "   > Chatwoot Sidekiq..."
     envsubst < chatwoot/08-chatwoot-sidekiq.yaml > /tmp/chatwoot-sidekiq.yaml
-    merge_yaml /tmp/chatwoot_full_deploy.yaml /tmp/chatwoot-admin.yaml /tmp/chatwoot-sidekiq.yaml
-    deploy_stack "chatwoot" "/tmp/chatwoot_full_deploy.yaml"
+    deploy_stack "chatwoot-sidekiq" "/tmp/chatwoot-sidekiq.yaml"
 
     echo "   > Evolution API..."
     envsubst < 09-evolution.yaml > /tmp/evolution_deploy.yaml
