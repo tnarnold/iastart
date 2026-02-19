@@ -408,6 +408,17 @@ if ! $NO_DATABASES; then
     deploy_stack "minio" "/tmp/03-minio_deploy.yaml"
 
     echo "   > MySQL..."
+    # Garante que o diretorio esteja limpo e com permissoes se for primeira instalacao
+    if [ -z "$(ls -A /storage/mysql/data 2>/dev/null)" ]; then
+        echo "     [INFO] Diretorio MySQL vazio. Ajustando permissoes..."
+        chown -R 1001:1001 /storage/mysql
+    else
+        echo "     [INFO] Diretorio MySQL nao esta vazio. Mantendo dados existentes."
+        # Se falhou antes, pode ter lixo. O usuario deve limpar manualmente ou usar 98-limpeza-apps.sh
+        # Mas garantimos a permissao mesmo assim
+        chown -R 1001:1001 /storage/mysql
+    fi
+    
     envsubst < 11-mysql.yaml > /tmp/11-mysql_deploy.yaml
     deploy_stack "mysql" "/tmp/11-mysql_deploy.yaml"
 
