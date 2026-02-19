@@ -63,7 +63,17 @@ services:
       # Banco WordPress (criado automaticamente)
       - MYSQL_DATABASE=wordpress
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
+      test:
+        [
+          "CMD",
+          "mysqladmin",
+          "ping",
+          "-h",
+          "localhost",
+          "-u",
+          "root",
+          "-p${MYSQL_ROOT_PASSWORD}",
+        ]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -75,9 +85,9 @@ services:
         limits:
           cpus: "1"
           memory: 1024M
-        reservations:
-          cpus: "0.5"
-          memory: 512M
+        # reservations:
+        #   cpus: "0.5"
+        #   memory: 512M
       restart_policy:
         condition: any
         delay: 15s
