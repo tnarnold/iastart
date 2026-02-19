@@ -64,6 +64,31 @@ for arg in "$@"; do
     esac
 done
 
+#==============================================================================
+# FUNCAO: MERGE DE YAMLS
+# Combina multiplos arquivos YAML Docker Compose em um unico documento.
+# Necessario porque a API do Portainer nao suporta multi-document YAML (---).
+# Uso: merge_yaml <output> <input1> <input2> [input3...]
+#==============================================================================
+merge_yaml() {
+    local output="$1"
+    shift
+    local inputs=("$@")
+
+    # Para cada arquivo, extrai somente as linhas do bloco "services:" (indentadas)
+    # e ignora as linhas do bloco "networks:" e comentarios top-level
+    {
+        echo "services:"
+        for f in "${inputs[@]}"; do
+            # Extrai o conteudo entre "services:" e "networks:" (ou EOF)
+            sed -n '/^services:/,/^networks:/{ /^services:/d; /^networks:/d; p; }' "$f"
+        done
+        echo "networks:"
+        echo "  network_public:"
+        echo "    external: true"
+    } > "$output"
+}
+
 [ "$EUID" -ne 0 ] && { echo "Execute como root: sudo bash $0"; exit 1; }
 
 #==============================================================================
@@ -216,23 +241,13 @@ if ! $NO_APPS; then
     envsubst < 04-n8n/04-n8n-editor.yaml > /tmp/n8n-editor.yaml
     envsubst < 04-n8n/05-n8n-webhook.yaml > /tmp/n8n-webhook.yaml
     envsubst < 04-n8n/06-n8n-worker.yaml > /tmp/n8n-worker.yaml
-    {
-      cat /tmp/n8n-editor.yaml
-      echo -e "\n---\n"
-      cat /tmp/n8n-webhook.yaml
-      echo -e "\n---\n"
-      cat /tmp/n8n-worker.yaml
-    } > /tmp/n8n_full_deploy.yaml
+    merge_yaml /tmp/n8n_full_deploy.yaml /tmp/n8n-editor.yaml /tmp/n8n-webhook.yaml /tmp/n8n-worker.yaml
     deploy_stack "n8n" "/tmp/n8n_full_deploy.yaml"
 
     echo "   > Chatwoot..."
     envsubst < chatwoot/07-chatwoot-admin.yaml > /tmp/chatwoot-admin.yaml
     envsubst < chatwoot/08-chatwoot-sidekiq.yaml > /tmp/chatwoot-sidekiq.yaml
-    {
-      cat /tmp/chatwoot-admin.yaml
-      echo -e "\n---\n"
-      cat /tmp/chatwoot-sidekiq.yaml
-    } > /tmp/chatwoot_full_deploy.yaml
+    merge_yaml /tmp/chatwoot_full_deploy.yaml /tmp/chatwoot-admin.yaml /tmp/chatwoot-sidekiq.yaml
     deploy_stack "chatwoot" "/tmp/chatwoot_full_deploy.yaml"
 
     echo "   > Evolution API..."
