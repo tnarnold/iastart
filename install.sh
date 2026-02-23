@@ -28,7 +28,7 @@ NO_DATABASES=false
 APPS_ONLY=false
 INSTALL_OPENCLAW=false
 INSTALL_WORDPRESS=false
-INSTALL_TUNNEL=false
+INSTALL_TUNNEL_ONLY=false
 RUN_CHECK=false
 
 show_help() {
@@ -54,6 +54,9 @@ show_help() {
     echo "  --tunnel          Configura Cloudflare Tunnel para acesso externo"
     echo "                    Requer CF_ACCOUNT_ID e CF_TUNNEL_API_TOKEN no .env"
     echo ""
+    echo "  --tunnel-only     Executa SOMENTE a configuracao do Cloudflare Tunnel"
+    echo "                    Pula a instalacao de Docker, Traefik, Portainer e Apps"
+    echo ""
     echo "  --check           Verifica se todos os servicos estao rodando"
     echo "                    Nao instala nada, apenas diagnostica o ambiente"
     echo ""
@@ -70,6 +73,7 @@ for arg in "$@"; do
         --openclaw)     INSTALL_OPENCLAW=true ;;
         --wordpress)    INSTALL_WORDPRESS=true ;;
         --tunnel)       INSTALL_TUNNEL=true ;;
+        --tunnel-only)  INSTALL_TUNNEL_ONLY=true; INSTALL_TUNNEL=true; NO_DATABASES=true; NO_APPS=true ;;
         --check)        RUN_CHECK=true ;;
         -h|--help)      show_help; exit 0 ;;
         *)              echo "[ERRO] Parametro desconhecido: $arg"; show_help; exit 1 ;;
@@ -353,7 +357,7 @@ fi
 #==============================================================================
 # CALCULO DINAMICO DE ETAPAS
 #==============================================================================
-if $APPS_ONLY; then
+if $APPS_ONLY || $INSTALL_TUNNEL_ONLY; then
     TOTAL_STEPS=0
 else
     TOTAL_STEPS=3
@@ -374,7 +378,9 @@ exec > >(tee -a ${LOG_FILE}) 2>&1
 echo "=============================================================================="
 echo "  INICIANDO INSTALACAO"
 echo "  Data: $(date)"
-if $APPS_ONLY; then
+if $INSTALL_TUNNEL_ONLY; then
+    echo "  Modo: Somente Tunnel (Pula Docker/Traefik/Portainer/Apps)"
+elif $APPS_ONLY; then
     echo "  Modo: Somente Apps (bancos + aplicacoes, sem Docker/Traefik/Portainer)"
 elif $NO_DATABASES; then
     echo "  Modo: Somente Infraestrutura (Docker + Traefik + Portainer)"
@@ -385,13 +391,13 @@ else
 fi
 $INSTALL_WORDPRESS && echo "  Extra: WordPress + MySQL"
 $INSTALL_OPENCLAW && echo "  Extra: OpenClaw (AI Assistant)"
-$INSTALL_TUNNEL && echo "  Extra: Cloudflare Tunnel"
+$INSTALL_TUNNEL && ! $INSTALL_TUNNEL_ONLY && echo "  Extra: Cloudflare Tunnel"
 echo "=============================================================================="
 
 #==============================================================================
 # ETAPA: DOCKER E SWARM
 #==============================================================================
-if ! $APPS_ONLY; then
+if ! $APPS_ONLY && ! $INSTALL_TUNNEL_ONLY; then
     STEP=$((STEP + 1))
     echo
     echo ">>> [$STEP/$TOTAL_STEPS] Configurando Docker e Swarm..."
@@ -401,7 +407,7 @@ fi
 #==============================================================================
 # ETAPA: TRAEFIK
 #==============================================================================
-if ! $APPS_ONLY; then
+if ! $APPS_ONLY && ! $INSTALL_TUNNEL_ONLY; then
     STEP=$((STEP + 1))
     echo
     echo ">>> [$STEP/$TOTAL_STEPS] Deploy do Traefik..."
@@ -411,7 +417,7 @@ fi
 #==============================================================================
 # ETAPA: PORTAINER
 #==============================================================================
-if ! $APPS_ONLY; then
+if ! $APPS_ONLY && ! $INSTALL_TUNNEL_ONLY; then
     STEP=$((STEP + 1))
     echo
     echo ">>> [$STEP/$TOTAL_STEPS] Deploy do Portainer..."
@@ -421,7 +427,7 @@ fi
 #==============================================================================
 # AUTENTICACAO PORTAINER API (necessaria para deploy de stacks)
 #==============================================================================
-if ! $NO_DATABASES || $INSTALL_OPENCLAW; then
+if (! $NO_DATABASES || $INSTALL_OPENCLAW) && ! $INSTALL_TUNNEL_ONLY; then
     source portainer_utils.sh
     check_deps
     authenticate "$PORTAINER_USER" "$PORTAINER_PASSWORD" || exit 1
@@ -538,7 +544,9 @@ fi
 echo
 echo "=============================================================================="
 echo "  INSTALACAO CONCLUIDA!"
-if $APPS_ONLY; then
+if $INSTALL_TUNNEL_ONLY; then
+    echo "  Servicos instalados: Somente Cloudflare Tunnel"
+elif $APPS_ONLY; then
     echo "  Servicos instalados: Bancos de Dados + Aplicacoes"
 elif $NO_DATABASES; then
     echo "  Servicos instalados: Docker, Traefik, Portainer"
@@ -549,7 +557,7 @@ else
 fi
 $INSTALL_WORDPRESS && echo "  + WordPress e MySQL (CMS)"
 $INSTALL_OPENCLAW && echo "  + OpenClaw (AI Assistant)"
-$INSTALL_TUNNEL && echo "  + Cloudflare Tunnel (Acesso Externo)"
+$INSTALL_TUNNEL && ! $INSTALL_TUNNEL_ONLY && echo "  + Cloudflare Tunnel (Acesso Externo)"
 echo "=============================================================================="
 echo "Verifique os servicos com: docker service ls"
 echo "Logs de instalacao salvos em: $LOG_FILE"
