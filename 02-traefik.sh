@@ -58,7 +58,7 @@ services:
       - --certificatesresolvers.letsencrypt.acme.dnschallenge.provider=cloudflare
       - --certificatesresolvers.letsencrypt.acme.dnschallenge.resolvers=1.1.1.1:53,8.8.8.8:53
       # Staging para evitar rate limit (comente para produção)
-      - --certificatesresolvers.letsencrypt.acme.caserver=https://acme-staging-v02.api.letsencrypt.org/directory
+      # - --certificatesresolvers.letsencrypt.acme.caserver=https://acme-staging-v02.api.letsencrypt.org/directory
     environment:
       - CF_DNS_API_TOKEN=${CF_DNS_API_TOKEN}
     ports:
