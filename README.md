@@ -18,13 +18,14 @@ Repositório para implantação automatizada de agentes de IA e ferramentas de a
 - **Docker Swarm**: Orquestração
 - **Traefik**: Proxy Reverso e SSL
 - **Portainer**: Gestão Visual
-- **Apps**: n8n, Chatwoot, Evolution API, WordPress
-- **Extras**: OpenClaw (AI Assistant), Cloudflare Tunnel (opcionais)
-- **Bancos**: PostgreSQL, MySQL, Redis, MinIO
+- **Apps**: n8n, Chatwoot, Evolution API
+- **Opcionais**: WordPress, OpenClaw (AI Assistant), Cloudflare Tunnel
+- **Bancos**: PostgreSQL, MySQL (opcional), Redis, MinIO
 
 ## 🚀 Instalação Rápida
 
 1. **Clone o repositório**
+
    ```bash
    git clone https://github.com/tnarnold/iastart.git
    cd iastart
@@ -32,10 +33,12 @@ Repositório para implantação automatizada de agentes de IA e ferramentas de a
 
 2. **Configure as Variáveis de Ambiente**
    Copie o exemplo e edite com seus dados (Domínio, Senhas, Emails):
+
    ```bash
    cp .env.example .env
    nano .env
    ```
+
    > **Nota:** Defina senhas fortes para produção!
 
 3. **Execute o Script de Instalação**
@@ -46,18 +49,20 @@ Repositório para implantação automatizada de agentes de IA e ferramentas de a
 
 ### Modos de Instalação
 
-| Comando | O que instala |
-|---|---|
-| `bash install.sh` | **Completa** — Docker, Traefik, Portainer, Bancos e Apps |
-| `bash install.sh --no-apps` | **Infra + Bancos** — Docker, Traefik, Portainer, Redis, PostgreSQL, MinIO, MySQL |
-| `bash install.sh --no-databases` | **Somente Infra** — Docker, Traefik, Portainer |
-| `bash install.sh --openclaw` | **Completa + OpenClaw** — Tudo acima + AI Assistant |
-| `bash install.sh --tunnel` | **Completa + Tunnel** — Tudo acima + Cloudflare Tunnel |
-| `bash install.sh --openclaw --tunnel` | **Completa + Extras** — Tudo + OpenClaw + Tunnel |
+| Comando                                | O que instala                                                                                         |
+| -------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `bash install.sh`                      | **Completa** — Docker, Traefik, Portainer, PostgreSQL, MinIO, Redis e Apps (n8n, Chatwoot, Evolution) |
+| `bash install.sh --no-apps`            | **Infra + Bancos** — Docker, Traefik, Portainer, Redis, PostgreSQL, MinIO                             |
+| `bash install.sh --no-databases`       | **Somente Infra** — Docker, Traefik, Portainer                                                        |
+| `bash install.sh --wordpress`          | **Core + CMS** — Tudo acima + MySQL e WordPress                                                       |
+| `bash install.sh --openclaw`           | **Core + OpenClaw** — Tudo acima + AI Assistant                                                       |
+| `bash install.sh --tunnel`             | **Core + Tunnel** — Tudo acima + Cloudflare Tunnel                                                    |
+| `bash install.sh --wordpress --tunnel` | **Exemplo Combinado** — Completa + CMS + Tunnel                                                       |
 
-> **Nota:** `--no-databases` implica `--no-apps`. As flags `--openclaw` e `--tunnel` podem ser combinadas com qualquer modo.
+> **Nota:** `--no-databases` implica `--no-apps`. As flags `--wordpress`, `--openclaw` e `--tunnel` podem ser combinadas com qualquer modo.
 
 Para ver todas as opções:
+
 ```bash
 bash install.sh --help
 ```
@@ -72,7 +77,7 @@ Após a instalação (aguarde alguns minutos para tudo subir), você poderá ace
 - **Chatwoot**: `https://chat.seudominio.com.br`
 - **Evolution API**: `https://ws.seudominio.com.br`
 - **MinIO Console**: `https://cdn.seudominio.com.br`
-- **WordPress**: `https://app.seudominio.com.br`
+- **WordPress** (se `--wordpress`): `https://app.seudominio.com.br`
 - **OpenClaw** (se `--openclaw`): `https://ai.seudominio.com.br`
 
 ## Estrutura de Pastas e arquivos
@@ -85,6 +90,7 @@ Após a instalação (aguarde alguns minutos para tudo subir), você poderá ace
 ## Solução de Problemas
 
 Se o SSL não funcionar (cadeado vermelho ou erro de certificado):
+
 1. Verifique se o seu domínio aponta para o IP correto do servidor (Tipo A).
 2. Verifique se as portas 80 e 443 estão liberadas no Firewall do provedor de nuvem (AWS/DigitalOcean/etc).
 3. Verifique os logs do Traefik: `docker service logs -f traefik_traefik`.
@@ -100,6 +106,7 @@ Se o seu servidor está atrás de CGNAT ou não tem IP público, use o Cloudflar
 2. **Obtenha seu Account ID** na visão geral do domínio no dashboard
 
 3. **Configure no `.env`**:
+
    ```env
    CF_ACCOUNT_ID=seu_account_id
    CF_TUNNEL_API_TOKEN=seu_api_token

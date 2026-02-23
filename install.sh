@@ -9,11 +9,12 @@
 #  Versao:   3.0.0
 #
 #  USO:
-#    bash install.sh                 # Instalacao completa
+#    bash install.sh                 # Instalacao completa (sem WP/OpenClaw/Tunnel)
 #    bash install.sh --apps-only     # Somente bancos + apps (pula Docker/Traefik/Portainer)
 #    bash install.sh --no-apps       # Sem aplicacoes (somente infra + bancos)
 #    bash install.sh --no-databases  # Somente Docker + Traefik + Portainer
 #    bash install.sh --openclaw      # Instalacao completa + OpenClaw
+#    bash install.sh --wordpress     # Instalacao completa + MySQL + WordPress
 #    bash install.sh --tunnel        # Instalacao completa + Cloudflare Tunnel
 #    bash install.sh --check         # Verifica se os servicos estao rodando
 #
@@ -26,6 +27,7 @@ NO_APPS=false
 NO_DATABASES=false
 APPS_ONLY=false
 INSTALL_OPENCLAW=false
+INSTALL_WORDPRESS=false
 INSTALL_TUNNEL=false
 RUN_CHECK=false
 
@@ -46,6 +48,9 @@ show_help() {
     echo "  --openclaw        Inclui o deploy do OpenClaw (AI Assistant)"
     echo "                    Pode ser combinado com outros parametros"
     echo ""
+    echo "  --wordpress       Inclui o deploy do MySQL e WordPress"
+    echo "                    Pode ser combinado com outros parametros"
+    echo ""
     echo "  --tunnel          Configura Cloudflare Tunnel para acesso externo"
     echo "                    Requer CF_ACCOUNT_ID e CF_TUNNEL_API_TOKEN no .env"
     echo ""
@@ -54,7 +59,7 @@ show_help() {
     echo ""
     echo "  -h, --help        Exibe esta ajuda"
     echo ""
-    echo "Sem opcoes: instalacao completa de todos os servicos (sem OpenClaw/Tunnel)."
+    echo "Sem opcoes: instalacao completa de todos os servicos (sem WP/OpenClaw/Tunnel)."
 }
 
 for arg in "$@"; do
@@ -63,6 +68,7 @@ for arg in "$@"; do
         --no-apps)      NO_APPS=true ;;
         --no-databases) NO_DATABASES=true; NO_APPS=true ;;
         --openclaw)     INSTALL_OPENCLAW=true ;;
+        --wordpress)    INSTALL_WORDPRESS=true ;;
         --tunnel)       INSTALL_TUNNEL=true ;;
         --check)        RUN_CHECK=true ;;
         -h|--help)      show_help; exit 0 ;;
@@ -117,7 +123,7 @@ run_check() {
     # 2. STACKS
     #--------------------------------------------------------------------------
     echo -e "${CYAN}[2/6] Stacks${NC}"
-    local EXPECTED_STACKS=("traefik" "portainer" "redis" "postgres" "minio" "mysql" "n8n-editor" "n8n-webhook" "n8n-worker" "chatwoot-admin" "chatwoot-sidekiq" "evolution" "wordpress")
+    local EXPECTED_STACKS=("traefik" "portainer" "redis" "postgres" "minio" "n8n-editor" "n8n-webhook" "n8n-worker" "chatwoot-admin" "chatwoot-sidekiq" "evolution")
     local ACTIVE_STACKS=$(docker stack ls --format '{{.Name}}' 2>/dev/null)
 
     for stack in "${EXPECTED_STACKS[@]}"; do
@@ -129,6 +135,18 @@ run_check() {
     done
 
     # Extras opcionais
+    if $INSTALL_WORDPRESS || echo "$ACTIVE_STACKS" | grep -qw "wordpress"; then
+        if echo "$ACTIVE_STACKS" | grep -qw "mysql"; then
+            check_ok "Stack: mysql (opcional)"
+        else
+            check_warn "Stack mysql ausente, mas esperada"
+        fi
+        if echo "$ACTIVE_STACKS" | grep -qw "wordpress"; then
+            check_ok "Stack: wordpress (opcional)"
+        else
+            check_warn "Stack wordpress ausente, mas esperada"
+        fi
+    fi
     if echo "$ACTIVE_STACKS" | grep -qw "openclaw"; then
         check_ok "Stack: openclaw (opcional)"
     else
@@ -151,15 +169,17 @@ run_check() {
         "redis_redis"
         "postgres_postgres"
         "minio_minio"
-        "mysql_mysql"
         "n8n-editor_n8n-editor"
         "n8n-webhook_n8n-webhook"
         "n8n-worker_n8n-worker"
         "chatwoot-admin_chatwoot-admin"
         "chatwoot-sidekiq_chatwoot-sidekiq"
         "evolution_evolution"
-        "wordpress_wordpress"
     )
+
+    if $INSTALL_WORDPRESS || docker service ls --format '{{.Name}}' 2>/dev/null | grep -qw "mysql_mysql"; then
+        EXPECTED_SERVICES+=("mysql_mysql" "wordpress_wordpress")
+    fi
 
     for svc in "${EXPECTED_SERVICES[@]}"; do
         local replicas=$(docker service ls --format '{{.Name}} {{.Replicas}}' 2>/dev/null | grep "^$svc " | awk '{print $2}')
@@ -187,12 +207,15 @@ run_check() {
         "/storage/redis"
         "/storage/postgres"
         "/storage/minio"
-        "/storage/mysql"
         "/storage/n8n"
         "/storage/chatwoot"
         "/storage/evolution"
-        "/storage/wordpress"
     )
+    
+    if $INSTALL_WORDPRESS || [ -d "/storage/mysql" ]; then
+        STORAGE_DIRS+=("/storage/mysql" "/storage/wordpress")
+    fi
+
     for dir in "${STORAGE_DIRS[@]}"; do
         if [ -d "$dir" ]; then
             check_ok "$dir"
@@ -240,10 +263,14 @@ run_check() {
         "https://wf.${DOMAIN}|n8n Editor"
         "https://wb.${DOMAIN}|n8n Webhook"
         "https://ws.${DOMAIN}|Evolution"
-        "https://app.${DOMAIN}|WordPress"
         "https://pn.${DOMAIN}|Portainer"
         "https://s3.${DOMAIN}|MinIO"
     )
+    
+    if $INSTALL_WORDPRESS || [ -d "/storage/wordpress" ]; then
+        URLS+=("https://app.${DOMAIN}|WordPress")
+    fi
+
     for entry in "${URLS[@]}"; do
         local url=$(echo "$entry" | cut -d'|' -f1)
         local name=$(echo "$entry" | cut -d'|' -f2)
@@ -305,14 +332,18 @@ if ! $NO_DATABASES; then
     mkdir -p /storage/redis/{data,logs,config} && chown -R 999:1000 /storage/redis
     mkdir -p /storage/postgres/{data,logs,config} && chown -R 999:999 /storage/postgres
     mkdir -p /storage/minio/{data,logs,config} && chown -R 1000:1000 /storage/minio
-    mkdir -p /storage/mysql/{data,files,tmp} && chown -R 999:999 /storage/mysql
+    if $INSTALL_WORDPRESS; then
+        mkdir -p /storage/mysql/{data,files,tmp} && chown -R 999:999 /storage/mysql
+    fi
 fi
 
 if ! $NO_APPS; then
     mkdir -p /storage/n8n/{data,logs,config,nodes} && chown -R 1000:1000 /storage/n8n
     mkdir -p /storage/chatwoot/{data,logs,config} && chown -R 1000:1000 /storage/chatwoot
     mkdir -p /storage/evolution/{data,logs,config} && chown -R 1000:1000 /storage/evolution
-    mkdir -p /storage/wordpress/data && chown -R 33:33 /storage/wordpress
+    if $INSTALL_WORDPRESS; then
+        mkdir -p /storage/wordpress/data && chown -R 33:33 /storage/wordpress
+    fi
 fi
 
 if $INSTALL_OPENCLAW; then
@@ -330,6 +361,7 @@ fi
 $NO_DATABASES    || TOTAL_STEPS=$((TOTAL_STEPS + 1))
 $NO_APPS         || TOTAL_STEPS=$((TOTAL_STEPS + 1))
 $INSTALL_OPENCLAW && TOTAL_STEPS=$((TOTAL_STEPS + 1))
+$INSTALL_WORDPRESS && TOTAL_STEPS=$((TOTAL_STEPS + 1))
 $INSTALL_TUNNEL && TOTAL_STEPS=$((TOTAL_STEPS + 1))
 STEP=0
 
@@ -349,8 +381,9 @@ elif $NO_DATABASES; then
 elif $NO_APPS; then
     echo "  Modo: Infraestrutura + Bancos de Dados (sem aplicacoes)"
 else
-    echo "  Modo: Instalacao Completa"
+    echo "  Modo: Instalacao Completa (sem WP/MySQL)"
 fi
+$INSTALL_WORDPRESS && echo "  Extra: WordPress + MySQL"
 $INSTALL_OPENCLAW && echo "  Extra: OpenClaw (AI Assistant)"
 $INSTALL_TUNNEL && echo "  Extra: Cloudflare Tunnel"
 echo "=============================================================================="
@@ -416,23 +449,25 @@ if ! $NO_DATABASES; then
     envsubst < 03-minio.yaml > /tmp/03-minio_deploy.yaml
     deploy_stack "minio" "/tmp/03-minio_deploy.yaml"
 
-    echo "   > MySQL..."
-    # Garante que o diretorio esteja limpo e com permissoes se for primeira instalacao
-    if [ -z "$(ls -A /storage/mysql/data 2>/dev/null)" ]; then
-        echo "     [INFO] Diretorio MySQL vazio. Ajustando permissoes..."
-        chown -R 999:999 /storage/mysql
-    else
-        echo "     [INFO] Diretorio MySQL nao esta vazio. Mantendo dados existentes."
-        # Se falhou antes, pode ter lixo. O usuario deve limpar manualmente ou usar 98-limpeza-apps.sh
-        # Mas garantimos a permissao mesmo assim
-        chown -R 999:999 /storage/mysql
-    fi
-    
-    envsubst < 11-mysql.yaml > /tmp/11-mysql_deploy.yaml
-    deploy_stack "mysql" "/tmp/11-mysql_deploy.yaml"
+    if $INSTALL_WORDPRESS; then
+        echo "   > MySQL..."
+        # Garante que o diretorio esteja limpo e com permissoes se for primeira instalacao
+        if [ -z "$(ls -A /storage/mysql/data 2>/dev/null)" ]; then
+            echo "     [INFO] Diretorio MySQL vazio. Ajustando permissoes..."
+            chown -R 999:999 /storage/mysql
+        else
+            echo "     [INFO] Diretorio MySQL nao esta vazio. Mantendo dados existentes."
+            # Se falhou antes, pode ter lixo. O usuario deve limpar manualmente ou usar 98-limpeza-apps.sh
+            # Mas garantimos a permissao mesmo assim
+            chown -R 999:999 /storage/mysql
+        fi
+        
+        envsubst < 11-mysql.yaml > /tmp/11-mysql_deploy.yaml
+        deploy_stack "mysql" "/tmp/11-mysql_deploy.yaml"
 
-    echo "   [INFO] Aguardando 60s para inicializacao do mysql..."
-    sleep 60
+        echo "   [INFO] Aguardando 60s para inicializacao do mysql..."
+        sleep 60
+    fi
 fi
 
 #==============================================================================
@@ -467,9 +502,11 @@ if ! $NO_APPS; then
     envsubst < 09-evolution.yaml > /tmp/evolution_deploy.yaml
     deploy_stack "evolution" "/tmp/evolution_deploy.yaml"
 
-    echo "   > WordPress..."
-    envsubst < 12-wordpress.yaml > /tmp/wordpress_deploy.yaml
-    deploy_stack "wordpress" "/tmp/wordpress_deploy.yaml"
+    if $INSTALL_WORDPRESS; then
+        echo "   > WordPress..."
+        envsubst < 12-wordpress.yaml > /tmp/wordpress_deploy.yaml
+        deploy_stack "wordpress" "/tmp/wordpress_deploy.yaml"
+    fi
 fi
 
 #==============================================================================
@@ -508,8 +545,9 @@ elif $NO_DATABASES; then
 elif $NO_APPS; then
     echo "  Servicos instalados: Docker, Traefik, Portainer + Bancos de Dados"
 else
-    echo "  Todos os servicos instalados"
+    echo "  Todos os servicos instalados (sem WP/MySQL por padrao)"
 fi
+$INSTALL_WORDPRESS && echo "  + WordPress e MySQL (CMS)"
 $INSTALL_OPENCLAW && echo "  + OpenClaw (AI Assistant)"
 $INSTALL_TUNNEL && echo "  + Cloudflare Tunnel (Acesso Externo)"
 echo "=============================================================================="
